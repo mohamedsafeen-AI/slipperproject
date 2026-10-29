@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BASIC FOOTGEAR — COD & WhatsApp Executive Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans & Playfair Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#0A0A0A',
+                        burgundy: '#32151F',
+                        'burgundy-dark': '#210C13',
+                        'burgundy-light': '#4A202E',
+                        gold: '#D4AF37',
+                        'gold-light': '#F3E5AB',
+                        'gold-dark': '#9A7B1C',
+                        charcoal: '#141414',
+                        cardbg: 'rgba(50, 21, 31, 0.45)',
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0A0A0A;
+            color: #E5E7EB;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(50, 21, 31, 0.5) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism Styling */
+        .glass-card {
+            background: rgba(20, 20, 20, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card-burgundy {
+            background: linear-gradient(135deg, rgba(50, 21, 31, 0.6) 0%, rgba(20, 20, 20, 0.8) 100%);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0A0A0A;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #32151F;
+            border-radius: 4px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #D4AF37;
+        }
+
+        /* Gold Gradient Text */
+        .text-gold-gradient {
+            background: linear-gradient(135deg, #FFF0B3 0%, #D4AF37 50%, #9A7B1C 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Active Navigation Tab Glow */
+        .nav-tab-active {
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.2) 0%, rgba(50, 21, 31, 0.4) 100%);
+            border-left: 3px solid #D4AF37;
+            color: #D4AF37;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-gold selection:text-obsidian">
+
+    <!-- TOP EXECUTIVE HEADER -->
+    <header class="sticky top-0 z-40 glass-card border-b border-gold/20 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Brand Logo & Badge -->
+            <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-burgundy border border-gold/40 flex items-center justify-center shadow-lg shadow-burgundy/50">
+                        <i class="fa-solid fa-shoe-prints text-gold text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-serif font-bold text-lg lg:text-xl tracking-wider text-gold-gradient uppercase">BASIC FOOTGEAR</h1>
+                        <p class="text-[10px] tracking-widest text-gold/70 font-semibold uppercase">COD & WhatsApp Order Management</p>
+                    </div>
+                </div>
+
+                <!-- COD Badge -->
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                    <i class="fa-solid fa-money-bill-wave"></i> 100% COD Workflow
+                </span>
+            </div>
+
+            <!-- Global Search Bar -->
+            <div class="relative w-full md:w-80 lg:w-96">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gold/50 text-sm"></i>
+                <input type="text" id="globalSearchInput" placeholder="Search COD orders, addresses, WhatsApp numbers..." 
+                    class="w-full bg-obsidian/80 text-sm text-gray-200 pl-9 pr-4 py-2 rounded-xl border border-gold/20 focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold/30 transition-all placeholder:text-gray-500">
+            </div>
+
+            <!-- Admin Status & Live Clock -->
+            <div class="hidden md:flex items-center space-x-6">
+                <!-- Live Clock -->
+                <div class="text-right border-r border-gold/20 pr-6">
+                    <div id="liveClock" class="font-mono text-sm font-semibold text-gold">--:--:--</div>
+                    <div id="liveDate" class="text-[11px] text-gray-400">-- --- ----</div>
+                </div>
+
+                <!-- Refresh Data -->
+                <button onclick="refreshDashboardData()" title="Sync COD Data" 
+                    class="p-2.5 rounded-xl bg-burgundy/60 hover:bg-burgundy text-gold border border-gold/30 transition-all hover:scale-105 active:scale-95 shadow-md">
+                    <i id="refreshIcon" class="fa-solid fa-rotate"></i>
+                </button>
+
+                <!-- Admin Profile -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-gold to-burgundy p-0.5 shadow-md">
+                        <img src="https://ui-avatars.com/api/?name=Store+Owner&background=32151F&color=D4AF37&bold=true" alt="Admin" class="w-full h-full rounded-full object-cover">
+                    </div>
+                    <div class="text-left">
+                        <h4 class="text-xs font-bold text-gray-100">Boutique Owner</h4>
+                        <p class="text-[10px] text-emerald-400"><i class="fa-brands fa-whatsapp mr-1"></i>+91 9384798122</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 flex-grow space-y-6">
+
+        <!-- ANALYTICS KPI OVERVIEW CARDS (COD Specific) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            
+            <!-- Card 1: Total COD Orders -->
+            <div class="glass-card-burgundy rounded-2xl p-5 relative overflow-hidden group hover:border-gold/50 transition-all duration-300">
+                <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i class="fa-solid fa-boxes-packing text-7xl text-gold"></i>
+                </div>
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-gold/80 uppercase tracking-wider">Total COD Orders</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gold/10 text-gold border border-gold/30">WhatsApp Incoming</span>
+                </div>
+                <div class="mt-3">
+                    <h2 class="text-2xl lg:text-3xl font-bold font-serif text-white tracking-wide" id="kpiTotalOrders">38</h2>
+                    <p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-clock-rotate-left text-gold mr-1"></i> Received via website cart</p>
+                </div>
+            </div>
+
+            <!-- Card 2: Total Order Value / COD Collections -->
+            <div class="glass-card-burgundy rounded-2xl p-5 relative overflow-hidden group hover:border-gold/50 transition-all duration-300">
+                <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i class="fa-solid fa-indian-rupee-sign text-7xl text-gold"></i>
+                </div>
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-gold/80 uppercase tracking-wider">COD Order Value</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Cash Collect</span>
+                </div>
+                <div class="mt-3">
+                    <h2 class="text-2xl lg:text-3xl font-bold font-serif text-white tracking-wide" id="kpiTotalRevenue">₹1,68,420</h2>
+                    <p class="text-xs text-emerald-400 mt-1"><i class="fa-solid fa-hand-holding-dollar mr-1"></i> Payable upon home delivery</p>
+                </div>
+            </div>
+
+            <!-- Card 3: Pending COD Deliveries -->
+            <div class="glass-card-burgundy rounded-2xl p-5 relative overflow-hidden group hover:border-gold/50 transition-all duration-300">
+                <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i class="fa-solid fa-truck-fast text-7xl text-gold"></i>
+                </div>
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-gold/80 uppercase tracking-wider">Out for COD Delivery</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 animate-pulse">Action Needed</span>
+                </div>
+                <div class="mt-3">
+                    <h2 class="text-2xl lg:text-3xl font-bold font-serif text-white tracking-wide" id="kpiPendingDeliveries">11 Orders</h2>
+                    <p class="text-xs text-amber-300/80 mt-1"><i class="fa-solid fa-person-biking mr-1"></i> Cash collection pending</p>
+                </div>
+            </div>
+
+            <!-- Card 4: WhatsApp Customer Inquiries -->
+            <div class="glass-card-burgundy rounded-2xl p-5 relative overflow-hidden group hover:border-gold/50 transition-all duration-300">
+                <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i class="fa-brands fa-whatsapp text-7xl text-emerald-500"></i>
+                </div>
+                <div class="flex justify-between items-start">
+                    <span class="text-xs font-medium text-gold/80 uppercase tracking-wider">WhatsApp Inquiries</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Get In Touch</span>
+                </div>
+                <div class="mt-3">
+                    <h2 class="text-2xl lg:text-3xl font-bold font-serif text-white tracking-wide" id="kpiInquiriesCount">6 Pending</h2>
+                    <p class="text-xs text-emerald-400 mt-1"><i class="fa-brands fa-whatsapp mr-1"></i> Direct customer queries</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- NAVIGATION TABS & DASHBOARD MODULES CONTAINER -->
+        <div class="glass-card rounded-2xl overflow-hidden border border-gold/20 shadow-2xl">
+            
+            <!-- Module Navigation Tab Bar -->
+            <div class="flex overflow-x-auto border-b border-gold/20 bg-obsidian/60 no-scrollbar">
+                <button onclick="switchTab('ordersTab')" id="btn-ordersTab" class="nav-tab-active flex items-center space-x-2 px-6 py-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 hover:text-gold">
+                    <i class="fa-solid fa-truck-ramp-box text-sm"></i>
+                    <span>COD Orders Dispatch Manager</span>
+                    <span id="badgeOrderCount" class="ml-1.5 px-2 py-0.5 rounded-full bg-gold/20 text-gold text-[10px]">4</span>
+                </button>
+
+                <button onclick="switchTab('productsTab')" id="btn-productsTab" class="flex items-center space-x-2 px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap transition-all duration-200 hover:text-gold">
+                    <i class="fa-solid fa-shoe-prints text-sm"></i>
+                    <span>Slipper & Shoe Catalog Quick Manager</span>
+                </button>
+
+                <button onclick="switchTab('inquiriesTab')" id="btn-inquiriesTab" class="flex items-center space-x-2 px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap transition-all duration-200 hover:text-gold">
+                    <i class="fa-brands fa-whatsapp text-sm text-emerald-400"></i>
+                    <span>WhatsApp Direct Inbox ("Get in Touch")</span>
+                    <span id="badgeInquiryCount" class="ml-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px]">3</span>
+                </button>
+            </div>
+
+            <!-- MODULE 1: COD ORDERS DISPATCH MANAGER -->
+            <section id="ordersTab" class="p-4 lg:p-6 space-y-4">
+                
+                <!-- Action Controls -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h3 class="font-serif font-bold text-lg text-gold-gradient">Cash on Delivery (COD) Dispatch & Collections</h3>
+                        <p class="text-xs text-gray-400">Manage incoming WhatsApp COD orders, verify addresses, and update cash collection status.</p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <!-- COD Status Filter -->
+                        <select id="orderStatusFilter" onchange="filterOrdersTable()" class="bg-burgundy-dark text-xs text-gold border border-gold/30 rounded-xl px-3 py-2 focus:outline-none focus:border-gold">
+                            <option value="ALL">All COD Statuses</option>
+                            <option value="New Order">New Order (Pending Dispatch)</option>
+                            <option value="Out for Delivery">Out for Delivery (COD)</option>
+                            <option value="Cash Collected">Cash Collected & Completed</option>
+                            <option value="Cancelled">Returned / Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Orders Table -->
+                <div class="overflow-x-auto rounded-xl border border-gold/10 bg-obsidian/40">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-burgundy/80 text-gold uppercase text-[10px] tracking-wider border-b border-gold/20">
+                            <tr>
+                                <th class="p-3.5">Order ID</th>
+                                <th class="p-3.5">Customer & Phone</th>
+                                <th class="p-3.5">Item(s) & Details</th>
+                                <th class="p-3.5">COD Amount</th>
+                                <th class="p-3.5">Delivery Address</th>
+                                <th class="p-3.5">COD Delivery Status</th>
+                                <th class="p-3.5 text-center">WhatsApp Direct Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody" class="divide-y divide-gold/10 text-gray-300">
+                            <!-- JS Dynamically Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- MODULE 2: PRODUCT CATALOG & STOCK MANAGER -->
+            <section id="productsTab" class="p-4 lg:p-6 space-y-6 hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h3 class="font-serif font-bold text-lg text-gold-gradient">Footwear Catalog & Stock</h3>
+                        <p class="text-xs text-gray-400">Quickly update slipper/shoe prices, stocks, and availability shown on your website.</p>
+                    </div>
+                    
+                    <button onclick="openAddProductModal()" class="w-full sm:w-auto bg-gradient-to-r from-gold-dark via-gold to-gold-dark hover:brightness-110 text-obsidian font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Add New Footwear Model</span>
+                    </button>
+                </div>
+
+                <!-- Product Grid -->
+                <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+                    <!-- JS Populated Cards -->
+                </div>
+            </section>
+
+            <!-- MODULE 3: WHATSAPP DIRECT INBOX -->
+            <section id="inquiriesTab" class="p-4 lg:p-6 space-y-4 hidden">
+                <div>
+                    <h3 class="font-serif font-bold text-lg text-gold-gradient">WhatsApp Direct Inbox ("Get in Touch")</h3>
+                    <p class="text-xs text-gray-400">General customer inquiries from the website. Reply directly to their WhatsApp with a single click.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6" id="inquiriesContainer">
+                    <!-- JS Populated Inquiries -->
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-gold/20 glass-card py-4 mt-8 text-center text-xs text-gray-500">
+        <p>© 2026 <span class="text-gold font-semibold">BASIC FOOTGEAR</span> — Kayalpattinam Cash on Delivery Admin Panel. Direct WhatsApp Store Operations.</p>
+    </footer>
+
+    <!-- ORDER DETAILS MODAL -->
+    <div id="orderModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-card-burgundy w-full max-w-lg rounded-2xl border border-gold/40 p-6 space-y-4 relative shadow-2xl animate-fade-in">
+            <button onclick="closeModal('orderModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gold text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="font-serif font-bold text-xl text-gold-gradient" id="modalOrderId">Order Details</h3>
+            <div id="modalOrderContent" class="space-y-3 text-xs text-gray-300">
+                <!-- JS Populated -->
+            </div>
+            <div class="pt-4 border-t border-gold/20 flex justify-between items-center">
+                <button id="modalWaBtn" target="_blank" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2">
+                    <i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp
+                </button>
+                <button onclick="closeModal('orderModal')" class="px-5 py-2 rounded-xl bg-burgundy border border-gold/30 text-gold text-xs hover:bg-gold hover:text-obsidian font-bold transition-all">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT PRODUCT MODAL -->
+    <div id="addProductModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-card-burgundy w-full max-w-md rounded-2xl border border-gold/40 p-6 space-y-4 relative shadow-2xl">
+            <button onclick="closeModal('addProductModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gold text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="font-serif font-bold text-xl text-gold-gradient">Add New Footwear Model</h3>
+            
+            <form id="addProductForm" onsubmit="handleAddProduct(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-gold mb-1 font-semibold">Footwear Name & Code</label>
+                    <input type="text" id="newProdName" required placeholder="e.g. Royal Leather Slipper (ID: sl-9)" class="w-full bg-obsidian text-gray-200 border border-gold/30 rounded-xl p-2.5 focus:border-gold focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-gold mb-1 font-semibold">Category</label>
+                        <select id="newProdCat" class="w-full bg-obsidian text-gray-200 border border-gold/30 rounded-xl p-2.5 focus:border-gold focus:outline-none">
+                            <option value="Slippers">Slippers / Slides</option>
+                            <option value="Shoes">Shoes / Loafers</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gold mb-1 font-semibold">COD Price (₹)</label>
+                        <input type="number" id="newProdPrice" required placeholder="3490" class="w-full bg-obsidian text-gray-200 border border-gold/30 rounded-xl p-2.5 focus:border-gold focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gold mb-1 font-semibold">Image URL</label>
+                    <input type="url" id="newProdImg" required placeholder="https://images.unsplash.com/photo-..." class="w-full bg-obsidian text-gray-200 border border-gold/30 rounded-xl p-2.5 focus:border-gold focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gold mb-1 font-semibold">Available Stock Pairs</label>
+                    <input type="number" id="newProdStock" required placeholder="15" class="w-full bg-obsidian text-gray-200 border border-gold/30 rounded-xl p-2.5 focus:border-gold focus:outline-none">
+                </div>
+                
+                <div class="pt-3 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('addProductModal')" class="px-4 py-2 rounded-xl bg-obsidian border border-gray-700 text-gray-400">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-gold-dark to-gold text-obsidian font-bold hover:brightness-110">Save Footwear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT DASHBOARD LOGIC -->
+    <script>
+        // STORE OWNER WHATSAPP
+        const STORE_OWNER_WA = "919384798122";
+
+        // COD ORDERS DATA
+        let ordersData = [
+            { 
+                id: "COD-101", 
+                name: "Fadhil Ahmed", 
+                mobile: "9843956568", 
+                items: "Pearl Coast Penny Loafers (sh-4) x 2", 
+                size: "UK 6", 
+                color: "Tan Brown",
+                price: "₹8,580", 
+                address: "Mannady, Chennai - 600001", 
+                status: "New Order", 
+                notes: "Customer confirmed COD order via WhatsApp cart." 
+            },
+            { 
+                id: "COD-102", 
+                name: "Ahzan Razak", 
+                mobile: "9843956568", 
+                items: "Sultan Double Monk Straps (sh-1) x 2, Pearl Coast Penny Loafers x 1", 
+                size: "UK 8 & UK 6", 
+                color: "Main Color & Tan Brown",
+                price: "₹14,270", 
+                address: "Main Bazaar, Kayalpattinam - 628204", 
+                status: "Out for Delivery", 
+                notes: "Out for local delivery in Kayalpattinam. Cash collection upon delivery." 
+            },
+            { 
+                id: "COD-103", 
+                name: "Mohamed Aslam", 
+                mobile: "9123456789", 
+                items: "Kayal Velvet Luxury Slipper (sl-2)", 
+                size: "UK 7", 
+                color: "Black Velvet",
+                price: "₹3,490", 
+                address: "Custom Street, Kayalpattinam - 628204", 
+                status: "Cash Collected", 
+                notes: "Cash collected at boutique storefront." 
+            },
+            { 
+                id: "COD-104", 
+                name: "Yaser Arafath", 
+                mobile: "9876543210", 
+                items: "Runner Knit Sport Trainers (sh-7)", 
+                size: "UK 10", 
+                color: "Grey",
+                price: "₹5,290", 
+                address: "Kilakarai, Ramanathapuram", 
+                status: "Cancelled", 
+                notes: "Customer cancelled COD request." 
+            }
+        ];
+
+        // PRODUCTS CATALOG DATA
+        let productsData = [
+            { id: "sh-1", name: "Sultan Double Monk Straps", category: "Shoes", price: 4990, stock: 14, img: "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=500&auto=format&fit=crop&q=60" },
+            { id: "sh-4", name: "Pearl Coast Penny Loafers", category: "Shoes", price: 4290, stock: 8, img: "https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=500&auto=format&fit=crop&q=60" },
+            { id: "sl-2", name: "Kayal Velvet Luxury Slipper", category: "Slippers", price: 3490, stock: 22, img: "https://images.unsplash.com/photo-1603808033192-082d6919d3e1?w=500&auto=format&fit=crop&q=60" },
+            { id: "sh-7", name: "Runner Knit Sport Trainers", category: "Shoes", price: 5290, stock: 5, img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=60" },
+        ];
+
+        // GET IN TOUCH INQUIRIES DATA
+        let inquiriesData = [
+            { id: "INQ-201", name: "Ahsan Maricar", mobile: "9843956568", email: "ahsan@gmail.com", msg: "Intha slipper UK 8 size stock la irukaa brother?", time: "10 mins ago" },
+            { id: "INQ-202", name: "Sheikh Abdullah", mobile: "9789012345", email: "sheikh@gmail.com", msg: "Do you offer custom leather fitting for home delivery in Kayalpattinam?", time: "1 hour ago" },
+            { id: "INQ-203", name: "Siddiq Buhari", mobile: "9655123456", email: "buhari@gmail.com", msg: "Can I collect Cash on Delivery directly at your Kayalpattinam store?", time: "3 hours ago" }
+        ];
+
+        // INITIALIZE DASHBOARD
+        window.onload = function() {
+            startLiveClock();
+            renderOrdersTable(ordersData);
+            renderProductsGrid();
+            renderInquiries();
+            updateKPIs();
+
+            // Search Filter
+            document.getElementById('globalSearchInput').addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase();
+                const filtered = ordersData.filter(o => 
+                    o.name.toLowerCase().includes(query) || 
+                    o.id.toLowerCase().includes(query) || 
+                    o.mobile.includes(query) ||
+                    o.address.toLowerCase().includes(query)
+                );
+                renderOrdersTable(filtered);
+            });
+        };
+
+        // LIVE CLOCK
+        function startLiveClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('liveClock').innerText = now.toLocaleTimeString('en-US', { hour12: false }) + " IST";
+                document.getElementById('liveDate').innerText = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            }, 1000);
+        }
+
+        // TAB SWITCHING
+        function switchTab(tabId) {
+            const tabs = ['ordersTab', 'productsTab', 'inquiriesTab'];
+            tabs.forEach(t => {
+                document.getElementById(t).classList.add('hidden');
+                const btn = document.getElementById('btn-' + t);
+                btn.classList.remove('nav-tab-active');
+                btn.classList.add('text-gray-400');
+            });
+
+            document.getElementById(tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.add('nav-tab-active');
+            activeBtn.classList.remove('text-gray-400');
+        }
+
+        // UPDATE KPI COUNTS
+        function updateKPIs() {
+            document.getElementById('kpiTotalOrders').innerText = ordersData.length;
+            document.getElementById('badgeOrderCount').innerText = ordersData.filter(o => o.status === 'New Order').length;
+            document.getElementById('kpiPendingDeliveries').innerText = ordersData.filter(o => o.status === 'Out for Delivery' || o.status === 'New Order').length + " Orders";
+            document.getElementById('kpiInquiriesCount').innerText = inquiriesData.length + " Pending";
+            document.getElementById('badgeInquiryCount').innerText = inquiriesData.length;
+        }
+
+        // RENDER ORDERS TABLE
+        function renderOrdersTable(data) {
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '';
+
+            if(data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-500">No COD orders matching query.</td></tr>`;
+                return;
+            }
+
+            data.forEach(order => {
+                let badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+                if(order.status === 'Out for Delivery') badgeClass = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+                if(order.status === 'Cash Collected') badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                if(order.status === 'Cancelled') badgeClass = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+
+                // Pre-filled WhatsApp response message
+                const msg = encodeURIComponent(`Hello ${order.name}, this is BASIC FOOTGEAR Kayalpattinam regarding your COD Order #${order.id}.\nItems: ${order.items}\nTotal COD Amount: ${order.price}\nDelivery Address: ${order.address}.\nPlease confirm your availability for cash payment on delivery. Thank you!`);
+                const waUrl = `https://wa.me/91${order.mobile}?text=${msg}`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-burgundy/30 transition-colors">
+                        <td class="p-3.5 font-mono text-gold font-bold">${order.id}</td>
+                        <td class="p-3.5">
+                            <div class="font-semibold text-gray-200">${order.name}</div>
+                            <div class="text-[10px] text-gray-400"><i class="fa-solid fa-phone text-gold/70 mr-1"></i>${order.mobile}</div>
+                        </td>
+                        <td class="p-3.5">
+                            <div class="font-medium text-gray-200 max-w-xs truncate">${order.items}</div>
+                            <span class="text-[10px] text-gold bg-gold/10 px-1.5 py-0.5 rounded border border-gold/20">Size: ${order.size}</span>
+                        </td>
+                        <td class="p-3.5 font-bold text-emerald-400">${order.price} <br><span class="text-[9px] text-gray-400 uppercase font-normal">(COD Cash)</span></td>
+                        <td class="p-3.5 max-w-xs truncate text-gray-300">${order.address}</td>
+                        <td class="p-3.5">
+                            <select onchange="updateOrderStatus('${order.id}', this.value)" class="text-[10px] font-semibold rounded-lg px-2 py-1 border ${badgeClass} bg-obsidian/80 focus:outline-none">
+                                <option value="New Order" ${order.status==='New Order'?'selected':''}>New Order (Pending)</option>
+                                <option value="Out for Delivery" ${order.status==='Out for Delivery'?'selected':''}>Out for Delivery (COD)</option>
+                                <option value="Cash Collected" ${order.status==='Cash Collected'?'selected':''}>Cash Collected & Completed</option>
+                                <option value="Cancelled" ${order.status==='Cancelled'?'selected':''}>Cancelled / Returned</option>
+                            </select>
+                        </td>
+                        <td class="p-3.5 text-center space-x-2">
+                            <button onclick="viewOrderDetails('${order.id}')" title="View Address & Details" class="p-1.5 rounded-lg bg-burgundy hover:bg-gold hover:text-obsidian text-gold transition-all">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <a href="${waUrl}" target="_blank" title="Send WhatsApp Delivery Update" class="inline-block p-1.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600 text-emerald-400 hover:text-white transition-all">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // RENDER PRODUCTS GRID
+        function renderProductsGrid() {
+            const container = document.getElementById('productGrid');
+            container.innerHTML = '';
+
+            productsData.forEach(p => {
+                container.innerHTML += `
+                    <div class="glass-card rounded-2xl overflow-hidden border border-gold/20 group hover:border-gold/50 transition-all">
+                        <div class="h-40 overflow-hidden relative">
+                            <img src="${p.img}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <span class="absolute top-3 right-3 bg-obsidian/80 text-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-gold/30">${p.category}</span>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h4 class="font-serif font-bold text-sm text-gray-100">${p.name}</h4>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-gold text-sm">₹${p.price.toLocaleString()}</span>
+                                <span class="text-gray-400">Stock: <strong class="${p.stock < 10 ? 'text-amber-400':'text-emerald-400'}">${p.stock} pairs</strong></span>
+                            </div>
+                            <div class="pt-2 border-t border-gold/10 flex justify-between items-center">
+                                <span class="text-[10px] text-gray-500">ID: ${p.id}</span>
+                                <button onclick="quickEditStock('${p.id}')" class="text-[11px] text-gold hover:underline font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i>Update Stock</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // RENDER WHATSAPP INQUIRIES
+        function renderInquiries() {
+            const container = document.getElementById('inquiriesContainer');
+            container.innerHTML = '';
+
+            inquiriesData.forEach(inq => {
+                const encodedMsg = encodeURIComponent(`Hello ${inq.name}, thank you for reaching out to BASIC FOOTGEAR Kayalpattinam! Regarding your message: "${inq.msg}"`);
+                const waUrl = `https://wa.me/91${inq.mobile}?text=${encodedMsg}`;
+
+                container.innerHTML += `
+                    <div class="glass-card-burgundy rounded-2xl p-4 border border-gold/20 space-y-3 relative">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-sm text-gold">${inq.name}</h4>
+                                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-phone text-gold/60 mr-1"></i>${inq.mobile}</p>
+                            </div>
+                            <span class="text-[10px] text-gray-500">${inq.time}</span>
+                        </div>
+                        <p class="text-xs text-gray-300 bg-obsidian/60 p-3 rounded-xl border border-gold/10 italic">"${inq.msg}"</p>
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="text-[10px] text-gold/70">${inq.email}</span>
+                            <a href="${waUrl}" target="_blank" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center space-x-1.5 transition-all">
+                                <i class="fa-brands fa-whatsapp"></i>
+                                <span>Reply on WhatsApp</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // MODAL LOGIC
+        function viewOrderDetails(orderId) {
+            const order = ordersData.find(o => o.id === orderId);
+            if(!order) return;
+
+            document.getElementById('modalOrderId').innerText = `COD Order: ${order.id}`;
+            document.getElementById('modalOrderContent').innerHTML = `
+                <div class="space-y-2">
+                    <p><strong>Customer Name:</strong> ${order.name}</p>
+                    <p><strong>Phone Number:</strong> ${order.mobile}</p>
+                    <p><strong>Ordered Items:</strong> ${order.items}</p>
+                    <p><strong>Footwear Size / Color:</strong> ${order.size} | ${order.color}</p>
+                    <p><strong>COD Total Amount:</strong> <span class="text-emerald-400 font-bold">${order.price}</span></p>
+                    <p><strong>Delivery Address:</strong> <span class="text-gold">${order.address}</span></p>
+                    <p><strong>Notes/Payment:</strong> Cash on Delivery (COD)</p>
+                    <p><strong>Current COD Status:</strong> <span class="text-gold font-bold">${order.status}</span></p>
+                </div>
+            `;
+
+            const msg = encodeURIComponent(`Hello ${order.name}, regarding your COD order #${order.id} from BASIC FOOTGEAR Kayalpattinam...`);
+            document.getElementById('modalWaBtn').onclick = () => window.open(`https://wa.me/91${order.mobile}?text=${msg}`, '_blank');
+            document.getElementById('orderModal').classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openAddProductModal() {
+            document.getElementById('addProductModal').classList.remove('hidden');
+        }
+
+        function handleAddProduct(e) {
+            e.preventDefault();
+            const newP = {
+                id: `sl-${productsData.length + 5}`,
+                name: document.getElementById('newProdName').value,
+                category: document.getElementById('newProdCat').value,
+                price: parseInt(document.getElementById('newProdPrice').value),
+                stock: parseInt(document.getElementById('newProdStock').value),
+                img: document.getElementById('newProdImg').value
+            };
+
+            productsData.unshift(newP);
+            renderProductsGrid();
+            closeModal('addProductModal');
+            alert('New footwear added to inventory successfully!');
+        }
+
+        function updateOrderStatus(id, newStatus) {
+            const order = ordersData.find(o => o.id === id);
+            if(order) {
+                order.status = newStatus;
+                updateKPIs();
+            }
+        }
+
+        function quickEditStock(id) {
+            const newStock = prompt("Enter updated stock count for ID " + id + ":");
+            if(newStock !== null) {
+                const prod = productsData.find(p => p.id === id);
+                if(prod) {
+                    prod.stock = parseInt(newStock) || prod.stock;
+                    renderProductsGrid();
+                }
+            }
+        }
+
+        function filterOrdersTable() {
+            const filterVal = document.getElementById('orderStatusFilter').value;
+            if(filterVal === 'ALL') {
+                renderOrdersTable(ordersData);
+            } else {
+                const filtered = ordersData.filter(o => o.status === filterVal);
+                renderOrdersTable(filtered);
+            }
+        }
+
+        function refreshDashboardData() {
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('fa-spin');
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+            }, 600);
+        }
+    </script>
+</body>
+</html>
