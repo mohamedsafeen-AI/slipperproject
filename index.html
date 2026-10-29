@@ -427,10 +427,7 @@
             </div>
 
             <div class="border-t border-luxuryBorder pt-4 space-y-3">
-                <div class="flex justify-between text-sm">
-                    <span class="text-mutedText">Subtotal</span>
-                    <span id="cartSubtotal" class="font-bold text-gold">₹0</span>
-                </div>
+                <!-- Prices are intentionally not displayed anywhere in the cart/checkout flow -->
                 <div class="flex justify-between text-xs text-mutedText">
                     <span>Local Kayalpattinam Delivery</span>
                     <span class="text-gold font-semibold">FREE</span>
@@ -1919,7 +1916,7 @@
                     <div>
                         <span class="text-xs text-gold font-serif tracking-widest uppercase">${product.category}</span>
                         <h2 class="font-serif text-2xl font-bold text-ivory mt-1 mb-2">${product.name}</h2>
-                        <p class="text-xl font-bold text-gold mb-4">₹${product.price.toLocaleString()}</p>
+                        <!-- Price intentionally not displayed (clean COD storefront) -->
                         <p class="text-xs text-mutedText leading-relaxed mb-6">${product.description}</p>
                         
                         ${product.cardVariants ? `
@@ -2151,7 +2148,9 @@
             }
             saveCart();
             updateCartUI();
-            showToast(`Added to Cart: ${product.name} — Size: ${size}${color ? ', Color: ' + color : ''}`);
+            // open the Add-to-Cart popup/drawer immediately (no raw price blot on
+            // the card itself — the drawer is the single place to review selection)
+            showToast(`Added to Cart: ${product.name} - Size: ${size}${color ? ', Color: ' + color : ''}`);
             openCartModal();
         }
 
@@ -2187,13 +2186,11 @@
         function updateCartUI() {
             const list = document.getElementById('cartItemsList');
             const countEl = document.getElementById('cartCount');
-            const subtotalEl = document.getElementById('cartSubtotal');
 
+            // Quantity-only bookkeeping — no price display or subtotal calculation
+            // anywhere in the cart drawer (store runs WhatsApp-quotation pricing)
             const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
-            const totalCost = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-
             countEl.textContent = totalQty;
-            subtotalEl.textContent = `₹${totalCost.toLocaleString()}`;
 
             if (cart.length === 0) {
                 list.innerHTML = `<p class="text-center text-xs text-mutedText py-8">Your shopping cart is empty.</p>`;
@@ -2206,7 +2203,7 @@
                         <img src="${item.pickedImage || item.image}" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="w-12 h-12 object-cover rounded border border-luxuryBorder" alt="${item.name}">
                         <div>
                             <h4 class="text-xs font-bold text-ivory">${item.name}</h4>
-                            <p class="text-xs text-gold">₹${item.price.toLocaleString()} x ${item.qty}</p>
+                            <p class="text-xs text-gold">Qty: ${item.qty}</p>
                             <p class="text-[10px] text-mutedText">Size: ${item.pickedSize || '—'}${item.pickedColor ? ` • Color: ${item.pickedColor}` : ''}</p>
                         </div>
                     </div>
@@ -3148,30 +3145,26 @@
         // category collections so inventory never mixes together.
         function adminCatalogCardHtml(p) {
             const isAngleCard = !!p.images;
-            const entries = isAngleCard ? dedupeCardAngles(p, resolveCardImages(p) || p.images) : null;
-            // Admin chips swap plain <img> sources (no CSS mirror available),
-            // so stand-in views are dropped and chips never repeat a photo
-            const seenSrc = new Set();
-            const chipEntries = (entries || []).filter(e => {
-                if (e.standin || seenSrc.has(e.src)) return false;
-                seenSrc.add(e.src);
-                return true;
-            });
-            // chip names come from the canonical audited labels (angleLabelFor),
-            // so the admin sees the exact same view names the storefront shows
-            const chipsHtml = chipEntries
-                ? chipEntries.map((e, i) =>
-                    `<button type="button" onclick="setProductAngle(this)" data-src="${e.src}" class="angle-chip ${i === 0 ? 'angle-chip-active' : ''}">${angleLabelFor(p, e.angle)}</button>`
+            const chipsEntries = isAngleCard ? dedupeCardAngles(p, resolveCardImages(p) || p.images) : null;
+            // Stand-in (mirrored side) views now participate: the chip carries a
+            // data-standin marker and setProductAngle applies the same scaleX(-1)
+            // flip the storefront slider uses — so EVERY slipper shows all 3 chips
+            // (Side Profile / Alternate Side / Sole / Bottom) even without a
+            // dedicated side photo file on disk.
+            const chipsHtml = chipsEntries
+                ? chipsEntries.map((e, i) =>
+                    `<button type="button" onclick="setProductAngle(this)" data-src="${e.src}" data-standin="${e.standin ? 1 : 0}" class="angle-chip ${i === 0 ? 'angle-chip-active' : ''}">${angleLabelFor(p, e.angle)}</button>`
                 ).join('')
                 : '';
-            const imgSrc = chipEntries.length ? chipEntries[0].src : p.image;
+            const firstEntry = chipsEntries && chipsEntries.length ? chipsEntries[0] : null;
+            const imgSrc = firstEntry ? firstEntry.src : p.image;
             const stock = getStock(p.id);
             const category = p.category === 'shoes' ? 'Shoes' : 'Slippers';
 
             return `
                     <div data-pid="${p.id}" class="glass-card rounded-2xl overflow-hidden border border-gold/20 group hover:border-gold/50 transition-all">
                         <div class="h-40 overflow-hidden relative">
-                            <img src="${imgSrc}" alt="${p.name}" class="prod-angle-img w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="${imgSrc}" alt="${p.name}" class="prod-angle-img w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" ${firstEntry && firstEntry.standin ? `style="transform: scaleX(-1);"` : ''}>
                             <span class="absolute top-3 right-3 bg-obsidian/80 text-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-gold/30">${category}</span>
                             <div class="absolute bottom-2 left-2 flex gap-1.5 flex-wrap">${chipsHtml}</div>
                         </div>
@@ -3355,7 +3348,15 @@
             const card = btn.closest('.glass-card');
             card.querySelectorAll('.angle-chip').forEach(c => c.classList.remove('angle-chip-active'));
             btn.classList.add('angle-chip-active');
-            card.querySelector('.prod-angle-img').src = btn.dataset.src;
+            const img = card.querySelector('.prod-angle-img');
+            img.src = btn.dataset.src;
+            // mirrored stand-in view (Alternate Side without a real side file):
+            // flip the primary photo in place, exactly like the storefront slider
+            if (btn.dataset.standin === '1') {
+                img.style.transform = 'scaleX(-1)';
+            } else {
+                img.style.transform = '';   // real angle file: clear any leftover flip
+            }
         }
 
         function handleAddProduct(e) {
