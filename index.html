@@ -894,20 +894,26 @@
         let DYNAMIC_PRODUCTS = [];
         try { DYNAMIC_PRODUCTS = JSON.parse(localStorage.getItem('bfDynamicProducts') || '[]'); } catch (err) { DYNAMIC_PRODUCTS = []; }
         // Legacy-session migration: dynamic products saved by older admin sessions
-        // carry the Front-first slot mapping (top slot = Front upload with custom
-        // angle labels), so they keep defaulting to "Front View" at the front of
-        // the Shoes / Slippers collections. Rebuild every owner product into the
-        // CURRENT side-first mapping at hydration:
-        //   SHOES   → Side Profile leads (real side upload, else mirrored front),
-        //             Top View (real top upload), Front Angle — canonical labels.
-        //   SLIPPERS→ Front View first (catalog convention) + owner labels kept.
+        // carry partial slot mappings (some with only 2 chips showing). Rebuild
+        // every owner product into the CURRENT always-3-chip mapping at hydration:
+        //   SHOES   → Side Profile leads (real side upload, else mirrored stand-in),
+        //             Top View (real top upload, else detail stand-in),
+        //             Front Angle (real front upload, else close-up stand-in) —
+        //             all three canonical chips always present.
+        //   SLIPPERS→ Side Profile / Alternate Side / Sole / Bottom — canonical
+        //             labels inherited, every slot covered by real photo or stand-in.
         function remapLegacyOwnerProductAngles(p) {
-            if (!p || !p.id || !p.images || p.cardVariants) return;
+            if (!p || !p.id || p.cardVariants) return;
             const front = p.imgFront || null;
             const side = p.imgSide || null;
             const top = p.imgTop || null;
-            if (!front && !side && !top) return;      // not an owner upload record
-            if (!p.img) p.img = front;                // guard: malformed legacy records
+            if (!front && !side && !top && !p.img) return;   // not an owner upload record
+            // Robustness guards: legacy/partial records may be missing the images{}
+            // map, the primary image, or the size run — every owner record leaves
+            // here complete regardless of what was persisted.
+            if (!Array.isArray(p.sizes) || !p.sizes.length) p.sizes = [6, 7, 8, 9, 10, 11];
+            if (!p.description) p.description = 'Handpicked by the boutique owner — fresh addition to the collection.';
+            if (!p.img) p.img = front || side || top;
             if (p.category === 'shoes' || p.category === 'Shoes') {
                 const frontSrc = front || p.img;
                 const sideSrc = (side && side !== frontSrc && side !== top) ? side : null;
@@ -915,18 +921,19 @@
                 p.image = sideSrc || p.img;           // side photo leads everywhere
                 p.images = {
                     top: sideSrc || { standin: 'mirror' },                        // Side Profile (index 0)
-                    ...(topSrc ? { left: topSrc } : {}),
-                    ...(frontSrc && frontSrc !== (sideSrc || '') ? { back: frontSrc } : {})
+                    left: topSrc || { standin: 'detail' },                        // Top View
+                    back: (frontSrc && frontSrc !== sideSrc) ? frontSrc : { standin: 'closeup' }   // Front Angle
                 };
                 delete p.angleLabels;                 // inherit canonical shoe view names
             } else {
                 const frontSrc = front || p.img;
                 p.images = {
-                    top: frontSrc,                    // Front View (owner-label convention)
-                    ...(side && side !== frontSrc ? { left: side } : { left: { standin: 'mirror' } }),
-                    ...(top && top !== frontSrc && top !== side ? { back: top } : {})
+                    top: frontSrc,                                                 // catalog photo (index 0)
+                    left: (side && side !== frontSrc) ? side : { standin: 'mirror' },          // Alternate Side
+                    back: (top && top !== frontSrc && top !== side) ? top : { standin: 'detail' }  // Sole / Bottom
                 };
-                p.angleLabels = p.angleLabels || { top: 'Front View', left: 'Side View', back: 'Top View' };
+                delete p.angleLabels;                 // inherit canonical slipper view names
+                if (!p.image) p.image = p.img || frontSrc;   // partial legacy records
             }
         }
         DYNAMIC_PRODUCTS.forEach(p => {
@@ -1729,14 +1736,29 @@
             return !!(v && typeof v === 'object' && v.standin);
         }
 
-        // Transform resolver for a card/modal angle view. Stand-in views ALWAYS
-        // render the primary photo mirrored (they exist only where no real photo
-        // covers the view) — including the top slot, so a front-only shoe's
-        // "Side Profile" stand-in looks like the other side, visually distinct
-        // from the unflipped "Front Angle" view. Real files keep their slot
-        // transform (none — they are true photos, never re-flipped).
+        // ===== Stand-in render styles =====
+        // Every missing-angle slot of an owner-added product still gets its own
+        // chip (canonical names), so the fallback view must stay VISUALLY
+        // distinct from its sibling fallbacks — a one-photo upload must never
+        // show the identical photo three times across its three dots:
+        //   mirror  → plain flip (the other side look, e.g. Side Profile fallback)
+        //   detail  → flip + gentle zoom (close-up framing, e.g. Top View fallback)
+        //   closeup → no flip, gentle zoom (detail crop, e.g. Front Angle fallback)
+        const STANDIN_STYLES = {
+            mirror:  'scaleX(-1)',
+            detail:  'scaleX(-1) scale(1.16)',
+            closeup: 'scale(1.16)'
+        };
+
+        // Transform resolver for a card/modal angle view. Stand-in views render
+        // the primary photo with the style their slot stands in FOR (they exist
+        // only where no real photo covers the view) — including the top slot, so
+        // a front-only shoe's "Side Profile" stand-in looks like the other side,
+        // visually distinct from the unflipped "Front Angle" view. Real files
+        // keep their slot transform (none — they are true photos, never re-flipped).
         function angleTransformFor(product, imgs, angle) {
-            if (angleIsStandin(product, imgs, angle)) return 'scaleX(-1)';
+            const v = imgs ? imgs[angle] : null;
+            if (v && typeof v === 'object' && v.standin) return STANDIN_STYLES[v.standin] || STANDIN_STYLES.mirror;
             return ANGLE_TRANSFORMS[angle] || 'none';
         }
 
@@ -1791,7 +1813,7 @@
             // shoes) → flip; the legacy slipper missing-file fallback keeps its flip
             const imgs = resolveCardImages(product);
             if (angleIsStandin(product, imgs, angleKey)) {
-                imgEl.style.transform = 'scaleX(-1)';
+                imgEl.style.transform = angleTransformFor(product, imgs, angleKey);
             } else if (angleKey && angleKey !== 'top' && product.category === 'slippers') {
                 imgEl.style.transform = ANGLE_TRANSFORMS[angleKey] || 'none';
             } else {
@@ -1970,7 +1992,7 @@
                             return `<div class="text-center">
                                 <button type="button" onclick="pickAngle('${product.id}', '${a}')" data-angle="${a}" title="${label}"
                                     class="angle-btn w-full h-14 rounded-lg border-2 overflow-hidden bg-white p-1 flex items-center justify-center transition duration-200 ${active ? 'border-gold ring-2 ring-gold/40' : 'border-luxuryBorder hover:border-gold'}">
-                                    <img src="${src}" ${standin ? 'style="transform: scaleX(-1);"' : ''} onerror="this.onerror=null; this.src='${product.image}'; setAngleTransform(this, '${product.category === 'slippers' ? a : 'top'}');" class="photo-blend max-w-full max-h-full object-contain" alt="${label}">
+                                    <img src="${src}" ${standin ? `style="transform: ${angleTransformFor(product, resolveCardImages(product) || product.images, a)};"` : ''} onerror="this.onerror=null; this.src='${product.image}'; setAngleTransform(this, '${product.category === 'slippers' ? a : 'top'}');" class="photo-blend max-w-full max-h-full object-contain" alt="${label}">
                                 </button>
                                 <p data-angle-cap="${a}" class="text-[9px] uppercase tracking-widest ${active ? 'text-gold' : 'text-mutedText'} mt-1">${label}</p>
                             </div>`;
@@ -2111,9 +2133,9 @@
             const imgs = resolveCardImages(product) || product.images;
             const standin = angleIsStandin(product, imgs, angle);
             const target = angleSrcFor(product, imgs, angle);
-            // the CSS mirror flip applies to ANY mirrored stand-in view, including
+            // the stand-in style applies to ANY stand-in view, including
             // the top slot of front-only owner shoes ("Side Profile" stand-in)
-            const flip = standin ? 'scaleX(-1)' : (ANGLE_TRANSFORMS[angle] || 'none');
+            const flip = standin ? angleTransformFor(product, imgs, angle) : (ANGLE_TRANSFORMS[angle] || 'none');
 
             img.onerror = null;
             if (standin) {
@@ -2776,6 +2798,11 @@
                 <p class="text-[11px] text-gray-400 -mt-2">Upload the three product angles from your PC or type local image paths — previews appear instantly.</p>
 
                 <form id="addProductForm" onsubmit="handleAddProduct(event)" class="space-y-3 text-xs">
+                    <p class="text-[10px] leading-relaxed text-[#8A8578]">
+                        <i class="fa-solid fa-circle-info text-[#D4AF37] mr-1"></i>
+                        All 3 angle chips are built for every product automatically — upload what you have;
+                        any skipped angle is covered by a styled stand-in view of your primary photo.
+                    </p>
                     <div>
                         <label class="block text-[#F7F4EB] mb-1 font-semibold">Footwear Name & Code</label>
                         <input type="text" id="newProdName" required placeholder="e.g. Royal Leather Slipper (ID: sl-9)" class="w-full bg-[#0A0A0A] text-[#F7F4EB] placeholder-gray-600 border border-[#D4AF37]/30 rounded-xl p-2.5 focus:border-[#D4AF37] focus:outline-none transition">
@@ -3474,13 +3501,20 @@
             // Unshifting into PRODUCTS instantly leads New Arrivals ("all"), the home
             // featured grid and search, while the mapped category routes it into the
             // Slippers or Shoes collection. images{} feeds the cards' existing
-            // 3-angle dot slider + hover auto-slide; angleLabels name the views.
-            // Asset mapping is fully automatic and PER CATEGORY:
-            //   SLIPPERS: Front View first (upload), Side as mirrored stand-in,
-            //             Sole (:Sole) photo as the Sole/Bottom view
-            //   SHOES:    Side Profile ALWAYS leads (default view + chip), then
-            //             Top View (real top upload only), then Front Angle.
-            //             Missing side photo → mirrored Front stand-in (scaleX(-1)).
+            // 3-angle dot slider + hover auto-slide; angleLabels inherit the
+            // canonical per-category view names (shoes: Side Profile / Top View /
+            // Front Angle — slippers: Side Profile / Alternate Side / Sole/Bottom).
+            // Asset mapping is fully automatic and PER CATEGORY — and EVERY slot
+            // is always covered (real upload → true photo; missing → a visually
+            // distinct style of stand-in) so every new product ALWAYS renders
+            // all 3 angle chips and all 3 carousel dots:
+            //   SLIPPERS: catalog photo first (index 0), Alternate Side as the other
+            //             side (upload or 'mirror' stand-in), Sole/Bottom view
+            //             (tread upload or 'detail' stand-in).
+            //   SHOES:    Side Profile ALWAYS leads (real side upload, else mirrored
+            //             'mirror' stand-in), Top View (real top upload, else
+            //             'detail' stand-in), Front Angle (real front upload,
+            //             else 'closeup' stand-in).
             const frontSrc = newP.imgFront || newP.img;
             const isOwnerShoe = newP.category === 'Shoes';
             let storefrontProduct;
@@ -3498,11 +3532,11 @@
                     image: sideSrc || newP.img,   // side photo leads everywhere (card default, cart, modal)
                     images: {
                         // Side Profile = the card's PRIMARY/first view on load
-                        top: sideSrc || { standin: 'mirror' },
-                        ...(topSrc ? { left: topSrc } : {}),                              // Top View (real upload only)
-                        ...(frontSrc && frontSrc !== (sideSrc || '') ? { back: frontSrc } : {})   // Front Angle (real front)
+                        top: sideSrc || { standin: 'mirror' },               // mirrored primary = the other side
+                        left: topSrc || { standin: 'detail' },               // Top View (real top, else detail stand-in)
+                        back: (frontSrc && frontSrc !== sideSrc) ? frontSrc : { standin: 'closeup' }   // Front Angle
                     },
-                    // no custom angleLabels → inherits the canonical shoe names:
+                    // no angleLabels → inherits the canonical shoe names:
                     // Side Profile (index 0) / Top View / Front Angle — matching seed shoes
                     description: 'Handpicked by the boutique owner — fresh addition to the collection.',
                     sizes: [6, 7, 8, 9, 10, 11],
@@ -3521,14 +3555,15 @@
                     tag: 'New',
                     image: newP.img,
                     images: {
-                        top: frontSrc,                                        // Front View
+                        top: frontSrc,                                        // catalog photo (index 0)
                         ...(newP.imgSide && newP.imgSide !== frontSrc
-                            ? { left: newP.imgSide }                          // real Side View file/upload
-                            : { left: { standin: 'mirror' } }),               // Side View (mirrored Front)
+                            ? { left: newP.imgSide }                          // Alternate Side (real side file/upload)
+                            : { left: { standin: 'mirror' } }),               // Alternate Side (mirrored primary)
                         ...(newP.imgTop && newP.imgTop !== frontSrc && newP.imgTop !== newP.imgSide
-                            ? { back: newP.imgTop } : {})                     // Top View (real upload only)
+                            ? { back: newP.imgTop } : { back: { standin: 'detail' } })   // Sole / Bottom (or detail stand-in)
                     },
-                    angleLabels: { top: 'Front View', left: 'Side View', back: 'Top View' },
+                    // no angleLabels → inherits the canonical slipper names:
+                    // Side Profile / Alternate Side / Sole / Bottom — matching seed slippers
                     description: 'Handpicked by the boutique owner — fresh addition to the collection.',
                     sizes: [6, 7, 8, 9, 10, 11],
                     imgFront: newP.imgFront,
