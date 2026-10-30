@@ -675,9 +675,11 @@
                 image: './assestes/menshoe6.png',
                 description: 'Minimal full-grain leather sneakers with gold-tone accents.',
                 sizes: [6, 7, 8, 9, 10],
-                // Source photo is a portrait 1080x1440 canvas with large transparent
-                // padding — scaled up so the sneaker matches the full-width look of items 1-2.
-                zoom: 2.2,
+                // Photos normalized on disk to the same fill style as the other shoe
+                // models (trimmed transparent/white margins, scale-matched to items 1/2),
+                // so the card fills its tile exactly like the shoes beside it.
+                // (Previously a portrait canvas that needed zoom: 2.2 — dead config on
+                // angle-dot cards; removed in favor of normalized source files.)
                 images: {
                     top: './assestes/menshoe6.png',
                     left: './assestes/shoetopview6.png',
@@ -891,8 +893,47 @@
         // ============================================================
         let DYNAMIC_PRODUCTS = [];
         try { DYNAMIC_PRODUCTS = JSON.parse(localStorage.getItem('bfDynamicProducts') || '[]'); } catch (err) { DYNAMIC_PRODUCTS = []; }
+        // Legacy-session migration: dynamic products saved by older admin sessions
+        // carry the Front-first slot mapping (top slot = Front upload with custom
+        // angle labels), so they keep defaulting to "Front View" at the front of
+        // the Shoes / Slippers collections. Rebuild every owner product into the
+        // CURRENT side-first mapping at hydration:
+        //   SHOES   → Side Profile leads (real side upload, else mirrored front),
+        //             Top View (real top upload), Front Angle — canonical labels.
+        //   SLIPPERS→ Front View first (catalog convention) + owner labels kept.
+        function remapLegacyOwnerProductAngles(p) {
+            if (!p || !p.id || !p.images || p.cardVariants) return;
+            const front = p.imgFront || null;
+            const side = p.imgSide || null;
+            const top = p.imgTop || null;
+            if (!front && !side && !top) return;      // not an owner upload record
+            if (!p.img) p.img = front;                // guard: malformed legacy records
+            if (p.category === 'shoes' || p.category === 'Shoes') {
+                const frontSrc = front || p.img;
+                const sideSrc = (side && side !== frontSrc && side !== top) ? side : null;
+                const topSrc = (top && top !== frontSrc && top !== side) ? top : null;
+                p.image = sideSrc || p.img;           // side photo leads everywhere
+                p.images = {
+                    top: sideSrc || { standin: 'mirror' },                        // Side Profile (index 0)
+                    ...(topSrc ? { left: topSrc } : {}),
+                    ...(frontSrc && frontSrc !== (sideSrc || '') ? { back: frontSrc } : {})
+                };
+                delete p.angleLabels;                 // inherit canonical shoe view names
+            } else {
+                const frontSrc = front || p.img;
+                p.images = {
+                    top: frontSrc,                    // Front View (owner-label convention)
+                    ...(side && side !== frontSrc ? { left: side } : { left: { standin: 'mirror' } }),
+                    ...(top && top !== frontSrc && top !== side ? { back: top } : {})
+                };
+                p.angleLabels = p.angleLabels || { top: 'Front View', left: 'Side View', back: 'Top View' };
+            }
+        }
         DYNAMIC_PRODUCTS.forEach(p => {
-            if (p && p.id && p.name && !PRODUCTS.some(x => x.id === p.id)) PRODUCTS.unshift(p);
+            if (p && p.id && p.name && !PRODUCTS.some(x => x.id === p.id)) {
+                try { remapLegacyOwnerProductAngles(p); } catch (err) {}
+                PRODUCTS.unshift(p);
+            }
         });
 
         let cart = [];
@@ -1587,7 +1628,7 @@
                         <div class="relative h-64 overflow-hidden bg-white" style="padding: 16px; isolation: isolate;">
                             ${isAngleCard ? `
                             <img data-card-angle-img="${product.id}" src="${currentEntry ? currentEntry.src : product.image}"
-                                ${currentEntry && currentEntry.standin ? `style="transform: ${ANGLE_TRANSFORMS[currentEntry.angle] || 'none'};"` : ''}
+                                ${currentEntry && currentEntry.standin ? `style="transform: ${angleTransformFor(product, angleImages, currentEntry.angle)};"` : ''}
                                 onerror="handleCardImgError(this, '${product.id}', '${currentAngle}')" alt="${product.name}" class="photo-blend w-full h-full object-contain transition-all duration-500">
                             <div class="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md text-[9px] uppercase tracking-widest font-bold pointer-events-none transition-all duration-300"
                                 data-angle-chip="${product.id}"
@@ -1688,6 +1729,17 @@
             return !!(v && typeof v === 'object' && v.standin);
         }
 
+        // Transform resolver for a card/modal angle view. Stand-in views ALWAYS
+        // render the primary photo mirrored (they exist only where no real photo
+        // covers the view) — including the top slot, so a front-only shoe's
+        // "Side Profile" stand-in looks like the other side, visually distinct
+        // from the unflipped "Front Angle" view. Real files keep their slot
+        // transform (none — they are true photos, never re-flipped).
+        function angleTransformFor(product, imgs, angle) {
+            if (angleIsStandin(product, imgs, angle)) return 'scaleX(-1)';
+            return ANGLE_TRANSFORMS[angle] || 'none';
+        }
+
         // Distinct-perspective guard: skip angle entries whose photo is identical to
         // one already offered on the card (owner-added items may have fewer than 3
         // distinct uploads, so toggling should never show the same photo twice).
@@ -1697,6 +1749,11 @@
             const seen = new Set();
             const out = [];
             CARD_ANGLE_ORDER.forEach(a => {
+                // A slot that does not exist at all contributes NO dot of its own —
+                // its fallback photo (the primary) is already covered by another view
+                // (critical when the primary itself is a mirrored stand-in: without
+                // this guard a phantom "Top View" dot would render the frontal photo)
+                if (!imgs || !imgs[a]) return;
                 const standin = angleIsStandin(product, imgs, a);
                 const src = angleSrcFor(product, imgs, a);
                 const key = standin ? 'standin:' + a : src;
@@ -1730,7 +1787,12 @@
             if (!product) { imgEl.src = FALLBACK_IMAGE; return; }
             imgEl.style.opacity = '1';
             imgEl.src = product.image;
-            if (angleKey && angleKey !== 'top' && product.category === 'slippers') {
+            // mirrored stand-in on ANY slot (incl. the top slot of front-only
+            // shoes) → flip; the legacy slipper missing-file fallback keeps its flip
+            const imgs = resolveCardImages(product);
+            if (angleIsStandin(product, imgs, angleKey)) {
+                imgEl.style.transform = 'scaleX(-1)';
+            } else if (angleKey && angleKey !== 'top' && product.category === 'slippers') {
                 imgEl.style.transform = ANGLE_TRANSFORMS[angleKey] || 'none';
             } else {
                 imgEl.style.transform = '';
@@ -1796,7 +1858,7 @@
             if (clean) {
                 // still make sure the dots — and the stand-in flip — reflect reality
                 if (standin) {
-                    img.style.transform = product.category === 'slippers' ? (ANGLE_TRANSFORMS[angle] || 'none') : '';
+                    img.style.transform = angleTransformFor(product, imgs, angle);   // any category with a mirrored stand-in
                 }
                 syncCardAngleDots(productId, angle);
                 return;
@@ -1814,23 +1876,25 @@
             setTimeout(() => {
                 if (cardSwapSeq[productId] !== seq) return;   // superseded — skip
                 const target = angleSrcFor(product, resolveCardImages(product), angle);   // variant-aware (sh-3 color swatches)
-                if (angle === 'top') {
-                    img.onerror = null;
-                    img.style.transform = '';                      // clean primary view, no stand-in flip left over
-                } else if (standin) {
+                if (standin) {
                     // stand-in view: no dedicated file — flip the primary photo in
-                    // place (no network request, no 404, no broken tile)
+                    // place (any category, ANY slot — incl. a front-only shoe's
+                    // top-slot "Side Profile" stand-in). Checked BEFORE the top
+                    // branch so returning to the primary restores its mirror.
+                    img.style.transform = angleTransformFor(product, imgs, angle);
                     img.onerror = null;
                     img.onload = () => { img.style.opacity = '1'; };
-                    img.style.transform = product.category === 'slippers' ? (ANGLE_TRANSFORMS[angle] || 'none') : '';
                     img.src = target;
+                } else if (angle === 'top') {
+                    img.onerror = null;
+                    img.style.transform = '';                      // clean primary view, no stand-in flip left over
                 } else {
                     img.onerror = () => {
                         img.onerror = null;
                         img.onload = () => { img.style.opacity = '1'; };
                         img.src = product.image;                                   // graceful revert to the primary photo
-                        // instantly-applied stand-in for missing files (fade feel only on slippers)
-                        img.style.transform = product.category === 'slippers' ? (ANGLE_TRANSFORMS[angle] || 'none') : '';
+                        // instantly-applied stand-in for missing files
+                        img.style.transform = angleTransformFor(product, imgs, angle);
                     };
                 }
                 if (!standin) {
@@ -1896,7 +1960,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div>
                         <div class="relative h-72 sm:h-80 rounded-xl overflow-hidden border border-luxuryBorder bg-white" style="padding: 25px; isolation: isolate;">
-                            <img id="modalImage" src="${modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : product.image)}" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="photo-blend w-full h-full object-contain transition-all duration-300" alt="${product.name}">
+                            <img id="modalImage" src="${modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : product.image)}" ${modalAngleEntries ? `style="transform: ${angleTransformFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle)};"` : ''} onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="photo-blend w-full h-full object-contain transition-all duration-300" alt="${product.name}">
                     </div>
                     <p class="text-[10px] uppercase tracking-widest text-gold mt-2 text-center font-semibold" id="modalAngleName">Now Viewing: ${modalAngleEntries ? angleLabelFor(product, modalPrimaryAngle) : 'Main View'}</p>
                     ${modalAngleEntries && modalAngleEntries.length ? `<div class="grid grid-cols-${Math.max(modalAngleEntries.length, 1)} gap-2 mt-2" id="angleWrap">
@@ -1906,7 +1970,7 @@
                             return `<div class="text-center">
                                 <button type="button" onclick="pickAngle('${product.id}', '${a}')" data-angle="${a}" title="${label}"
                                     class="angle-btn w-full h-14 rounded-lg border-2 overflow-hidden bg-white p-1 flex items-center justify-center transition duration-200 ${active ? 'border-gold ring-2 ring-gold/40' : 'border-luxuryBorder hover:border-gold'}">
-                                    <img src="${src}" ${standin && product.category === 'slippers' ? `style="transform: ${ANGLE_TRANSFORMS[a] || 'none'};"` : ''} onerror="this.onerror=null; this.src='${product.image}'; setAngleTransform(this, '${product.category === 'slippers' ? a : 'top'}');" class="photo-blend max-w-full max-h-full object-contain" alt="${label}">
+                                    <img src="${src}" ${standin ? 'style="transform: scaleX(-1);"' : ''} onerror="this.onerror=null; this.src='${product.image}'; setAngleTransform(this, '${product.category === 'slippers' ? a : 'top'}');" class="photo-blend max-w-full max-h-full object-contain" alt="${label}">
                                 </button>
                                 <p data-angle-cap="${a}" class="text-[9px] uppercase tracking-widest ${active ? 'text-gold' : 'text-mutedText'} mt-1">${label}</p>
                             </div>`;
@@ -2029,7 +2093,13 @@
             left: 'scaleX(-1)'
         };
         function setAngleTransform(node, angle) {
-            if (node) node.style.transform = ANGLE_TRANSFORMS[angle] || 'none';
+            if (!node) return;
+            if (Object.prototype.hasOwnProperty.call(ANGLE_TRANSFORMS, angle)) {
+                node.style.transform = ANGLE_TRANSFORMS[angle];
+            } else {
+                // raw transform passthrough ('scaleX(-1)', 'none', '')
+                node.style.transform = angle || 'none';
+            }
         }
         function pickAngle(productId, angle) {
             const product = PRODUCTS.find(p => p.id === productId);
@@ -2041,16 +2111,17 @@
             const imgs = resolveCardImages(product) || product.images;
             const standin = angleIsStandin(product, imgs, angle);
             const target = angleSrcFor(product, imgs, angle);
-            // the CSS mirror flip belongs ONLY to slipper stand-in side views
-            const flip = product.category === 'slippers' ? (ANGLE_TRANSFORMS[angle] || 'none') : 'none';
+            // the CSS mirror flip applies to ANY mirrored stand-in view, including
+            // the top slot of front-only owner shoes ("Side Profile" stand-in)
+            const flip = standin ? 'scaleX(-1)' : (ANGLE_TRANSFORMS[angle] || 'none');
 
             img.onerror = null;
-            if (angle === 'top') {
+            if (standin) {
+                // mirrored stand-in: primary photo + flip, no network request
+                img.onload = () => { img.style.opacity = '1'; setAngleTransform(img, flip); };
+            } else if (angle === 'top') {
                 // Original image, untransformed
                 img.onload = () => { img.style.opacity = '1'; setAngleTransform(img, 'none'); };
-            } else if (standin) {
-                // mirrored stand-in: primary photo + slipper flip, no network request
-                img.onload = () => { img.style.opacity = '1'; setAngleTransform(img, flip); };
             } else {
                 img.onerror = () => {
                     img.onerror = null;
@@ -2073,7 +2144,7 @@
             setTimeout(() => {
                 if (img.style.opacity !== '1' && img.getAttribute('src')) {
                     img.style.opacity = '1';
-                    setAngleTransform(img, (angle !== 'top' && (standin || img.getAttribute('src') === product.image)) ? flip : 'none');
+                    setAngleTransform(img, (standin || (angle !== 'top' && img.getAttribute('src') === product.image)) ? flip : 'none');
                 }
             }, 400);
 
@@ -2337,6 +2408,18 @@
                 // sizes, details) for the boutique owner
                 const link = getProductImageLink(item.id);
                 if (link) text += `Product View: \n${link}\n`;
+                // Image reference: the exact photo the customer ordered (the selected
+                // variant image when applicable). Resolved dynamically — works for
+                // owner-added models, color variants and catalog items alike,
+                // with NO hardcoded paths. Large uploaded data-URLs are skipped
+                // (the Product View deep link already shows the model).
+                const imgSrc = item.pickedImage || item.image || '';
+                if (imgSrc && !/^data:/i.test(imgSrc)) {
+                    try {
+                        const absImg = new URL(imgSrc, window.location.href).href;
+                        text += `Image Reference: \n${absImg}\n`;
+                    } catch (err) { /* relative path unresolvable — Product View link still identifies the model */ }
+                }
             });
 
             text += `\n*Total COD Amount:* ₹${totalCost.toLocaleString()}`;
@@ -3369,7 +3452,9 @@
                 return;
             }
             const newP = {
-                id: `own-${Date.now().toString(36)}`,   // collision-proof id (never clashes with catalog IDs)
+                // Fully dynamic reference ID: unique even if two models are added in
+                // the same millisecond — no manual hardcoding anywhere in the flow
+                id: `own-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
                 name: document.getElementById('newProdName').value,
                 category: document.getElementById('newProdCat').value,
                 price: parseInt(document.getElementById('newProdPrice').value),
@@ -3390,27 +3475,67 @@
             // featured grid and search, while the mapped category routes it into the
             // Slippers or Shoes collection. images{} feeds the cards' existing
             // 3-angle dot slider + hover auto-slide; angleLabels name the views.
-            const storefrontProduct = {
-                id: newP.id,
-                name: newP.name,
-                category: newP.category === 'Shoes' ? 'shoes' : 'slippers',
-                price: newP.price,
-                rating: 4.8,
-                reviews: 0,
-                tag: 'New',
-                image: newP.img,
-                images: {
-                    top: newP.imgFront || newP.img,   // Front View
-                    left: newP.imgSide || newP.img,   // Side View
-                    back: newP.imgTop || newP.img     // Top View
-                },
-                angleLabels: { top: 'Front View', left: 'Side View', back: 'Top View' },
-                description: 'Handpicked by the boutique owner — fresh addition to the collection.',
-                sizes: [6, 7, 8, 9, 10, 11],
-                imgFront: newP.imgFront,
-                imgSide: newP.imgSide,
-                imgTop: newP.imgTop
-            };
+            // Asset mapping is fully automatic and PER CATEGORY:
+            //   SLIPPERS: Front View first (upload), Side as mirrored stand-in,
+            //             Sole (:Sole) photo as the Sole/Bottom view
+            //   SHOES:    Side Profile ALWAYS leads (default view + chip), then
+            //             Top View (real top upload only), then Front Angle.
+            //             Missing side photo → mirrored Front stand-in (scaleX(-1)).
+            const frontSrc = newP.imgFront || newP.img;
+            const isOwnerShoe = newP.category === 'Shoes';
+            let storefrontProduct;
+            if (isOwnerShoe) {
+                const sideSrc = (newP.imgSide && newP.imgSide !== frontSrc && newP.imgSide !== newP.imgTop) ? newP.imgSide : null;
+                const topSrc = (newP.imgTop && newP.imgTop !== frontSrc && newP.imgTop !== newP.imgSide) ? newP.imgTop : null;
+                storefrontProduct = {
+                    id: newP.id,
+                    name: newP.name,
+                    category: 'shoes',
+                    price: newP.price,
+                    rating: 4.8,
+                    reviews: 0,
+                    tag: 'New',
+                    image: sideSrc || newP.img,   // side photo leads everywhere (card default, cart, modal)
+                    images: {
+                        // Side Profile = the card's PRIMARY/first view on load
+                        top: sideSrc || { standin: 'mirror' },
+                        ...(topSrc ? { left: topSrc } : {}),                              // Top View (real upload only)
+                        ...(frontSrc && frontSrc !== (sideSrc || '') ? { back: frontSrc } : {})   // Front Angle (real front)
+                    },
+                    // no custom angleLabels → inherits the canonical shoe names:
+                    // Side Profile (index 0) / Top View / Front Angle — matching seed shoes
+                    description: 'Handpicked by the boutique owner — fresh addition to the collection.',
+                    sizes: [6, 7, 8, 9, 10, 11],
+                    imgFront: newP.imgFront,
+                    imgSide: newP.imgSide,
+                    imgTop: newP.imgTop
+                };
+            } else {
+                storefrontProduct = {
+                    id: newP.id,
+                    name: newP.name,
+                    category: 'slippers',
+                    price: newP.price,
+                    rating: 4.8,
+                    reviews: 0,
+                    tag: 'New',
+                    image: newP.img,
+                    images: {
+                        top: frontSrc,                                        // Front View
+                        ...(newP.imgSide && newP.imgSide !== frontSrc
+                            ? { left: newP.imgSide }                          // real Side View file/upload
+                            : { left: { standin: 'mirror' } }),               // Side View (mirrored Front)
+                        ...(newP.imgTop && newP.imgTop !== frontSrc && newP.imgTop !== newP.imgSide
+                            ? { back: newP.imgTop } : {})                     // Top View (real upload only)
+                    },
+                    angleLabels: { top: 'Front View', left: 'Side View', back: 'Top View' },
+                    description: 'Handpicked by the boutique owner — fresh addition to the collection.',
+                    sizes: [6, 7, 8, 9, 10, 11],
+                    imgFront: newP.imgFront,
+                    imgSide: newP.imgSide,
+                    imgTop: newP.imgTop
+                };
+            }
             PRODUCTS.unshift(storefrontProduct);
             DYNAMIC_PRODUCTS.unshift(storefrontProduct);
             try {
