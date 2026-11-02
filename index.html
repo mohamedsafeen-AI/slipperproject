@@ -185,6 +185,33 @@
         #adminDashboard ::-webkit-scrollbar-thumb:hover { background: #D6B574; }
         #adminDashboard .no-scrollbar::-webkit-scrollbar { display: none; }
         #adminDashboard .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ===== Dashboard modules: stacked cards on mobile/tab ===== */
+        /* Below lg (1024px) the module tab "slider" is disabled: the tab bar
+           disappears and all three management modules (COD Dispatch, Catalog
+           Quick Manager, WhatsApp Inbox) render as separate, distinct,
+           full-width stacked cards — everything visible at a glance without
+           horizontal swiping. Desktop/tablet≥lg keeps the tabbed layout. */
+        @media (max-width: 1023px) {
+            #moduleTabBar { display: none !important; }
+            /* flatten the shared tab-card chrome — each module gets its own */
+            #modulesContainer {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+            .admin-module {
+                /* defeats switchTab()'s inactive .hidden so ALL modules show */
+                display: block !important;
+                background: linear-gradient(160deg, rgba(28, 11, 18, 0.75) 0%, rgba(10, 10, 10, 0.92) 60%) !important;
+                border: 1px solid rgba(212, 175, 55, 0.25) !important;
+                border-radius: 16px !important;
+                box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45) !important;
+                margin: 0 0 16px 0 !important;
+            }
+        }
+
         @keyframes adminFadeIn {
             from { opacity: 0; transform: scale(0.97); }
             to   { opacity: 1; transform: scale(1); }
@@ -2646,10 +2673,10 @@
             </section>
 
             <!-- NAVIGATION TABS & DASHBOARD MODULES CONTAINER -->
-            <div class="glass-card rounded-2xl overflow-hidden border border-gold/20 shadow-2xl">
+            <div id="modulesContainer" class="glass-card rounded-2xl overflow-hidden border border-gold/20 shadow-2xl">
 
                 <!-- Module Navigation Tab Bar -->
-                <div class="flex overflow-x-auto border-b border-gold/20 bg-obsidian/60 no-scrollbar">
+                <div id="moduleTabBar" class="flex overflow-x-auto border-b border-gold/20 bg-obsidian/60 no-scrollbar">
                     <button onclick="switchTab('ordersTab')" id="btn-ordersTab" class="nav-tab-active flex items-center space-x-2 px-6 py-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 hover:text-gold">
                         <i class="fa-solid fa-truck-ramp-box text-sm"></i>
                         <span>COD Orders Dispatch Manager</span>
@@ -2669,8 +2696,7 @@
                 </div>
 
                 <!-- MODULE 1: COD ORDERS DISPATCH MANAGER -->
-                <section id="ordersTab" class="p-4 lg:p-6 space-y-4">
-
+                <section id="ordersTab" class="admin-module p-4 lg:p-6 space-y-4">
                     <!-- Action Controls -->
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <div>
@@ -2712,7 +2738,7 @@
                 </section>
 
                 <!-- MODULE 2: PRODUCT CATALOG & STOCK MANAGER -->
-                <section id="productsTab" class="p-4 lg:p-6 space-y-6 hidden">
+                <section id="productsTab" class="admin-module p-4 lg:p-6 space-y-6 hidden">
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <div>
                             <h3 class="font-serif font-bold text-lg text-gold-gradient">Footwear Catalog &amp; Stock</h3>
@@ -2755,7 +2781,7 @@
                 </section>
 
                 <!-- MODULE 3: WHATSAPP DIRECT INBOX -->
-                <section id="inquiriesTab" class="p-4 lg:p-6 space-y-4 hidden">
+                <section id="inquiriesTab" class="admin-module p-4 lg:p-6 space-y-4 hidden">
                     <div>
                         <h3 class="font-serif font-bold text-lg text-gold-gradient">WhatsApp Direct Inbox ("Get in Touch")</h3>
                         <p class="text-xs text-gray-400">General customer inquiries from the website. Reply directly to their WhatsApp with a single click.</p>
