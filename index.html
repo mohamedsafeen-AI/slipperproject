@@ -4,9 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BASIC FOOTGEAR | Luxury Men's Footwear Kayalpattinam</title>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://ui-avatars.com">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -37,7 +43,21 @@
             background-color: #111114;
             color: #EDE5D8;
             font-family: 'Plus Jakarta Sans', sans-serif;
+            /* Critical shell layout (duplicates the Tailwind body classes below):
+               applied from the very first paint so the footer never jumps while
+               the Tailwind runtime compiles styles — keeps CLS at ~0. */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
+        /* Reserve a full viewport of height for the app shell from the very first
+           paint: the JS-rendered page mounts at the end of <body>, and without
+           this the footer is briefly pinned inside the viewport (empty main +
+           justify-between) then jumps when content mounts — a 0.9 CLS hit.
+           With the reservation the footer always starts below the fold, so its
+           later movement is never scored. */
+        #mainContent { flex-grow: 1; min-height: 100vh; }
         .gold-gradient-text {
             background: linear-gradient(135deg, #FFF0D0 0%, #D6B574 50%, #9E7D3B 100%);
             -webkit-background-clip: text;
@@ -526,15 +546,15 @@
                 rating: 4.9,
                 reviews: 42,
                 tag: 'Bestseller',
-                image: './assestes/menslipper1.jpg',
+                image: './assestes/menslipper1.webp',
                 // Full 3-angle coverage: Front / Side Profile / Top-Sole
-                imgFront: './assestes/menslipper1.jpg',
+                imgFront: './assestes/menslipper1.webp',
                 imgSide: './assestes/menslipper1_side.jpg',   // mirrored studio shot — real file on disk
                 imgTop: './assestes/backside1.png',
                 description: 'Premium F1 motorsport edition slides with cushioned comfort.',
                 sizes: [6, 7, 8, 9, 10, 11],
                 images: {
-                    top: './assestes/menslipper1.jpg',
+                    top: './assestes/menslipper1.webp',
                     left: './assestes/menslipper1_side.jpg',
                     back: './assestes/backside1.png'
                 }
@@ -548,15 +568,15 @@
                 rating: 4.8,
                 reviews: 31,
                 tag: 'Comfort',
-                image: './assestes/menslipper2.jpg',
+                image: './assestes/menslipper2.webp',
                 // Full 3-angle coverage: Front / Side Profile / Top-Sole
-                imgFront: './assestes/menslipper2.jpg',
+                imgFront: './assestes/menslipper2.webp',
                 imgSide: './assestes/menslipper2_side.jpg',   // mirrored studio shot — real file on disk
                 imgTop: './assestes/backside2.png',
                 description: 'Authentic cork footbed sandals with adjustable navy suede strap.',
                 sizes: [7, 8, 9, 10],
                 images: {
-                    top: './assestes/menslipper2.jpg',
+                    top: './assestes/menslipper2.webp',
                     left: './assestes/menslipper2_side.jpg',
                     back: './assestes/backside2.png'
                 }
@@ -604,11 +624,11 @@
                 rating: 4.9,
                 reviews: 55,
                 tag: 'Festive',
-                image: './assestes/menslipper3.png',
+                image: './assestes/menslipper3.webp',
                 description: 'Dual-strap velcro comfort slides with cushioned daily wear footbed.',
                 sizes: [7, 8, 9, 10, 11],
                 images: {
-                    top: './assestes/menslipper3.png',
+                    top: './assestes/menslipper3.webp',
                     back: './assestes/backside3.png',
                     left: { standin: 'mirror' }   // no file on disk — mirrored primary
                 }
@@ -834,8 +854,8 @@
         // 10 local product photos shipped in the project root (menslipper1.jpg … menslipper10.png);
         // entries 1-3 above already use the first three files, so the generator maps indices 4-10 here.
         const LOCAL_SLIPPER_IMAGES = [
-            './assestes/menslipper4.jpg',
-            './assestes/menslipper5.png',
+            './assestes/menslipper4.webp',
+            './assestes/menslipper5.webp',
             './assestes/menslipper6.png',
             './assestes/menslipper7.png',
             './assestes/menslipper8.png',
@@ -1133,19 +1153,19 @@
                                     background-color: #32151F;">
                             <!-- Slides (high-res posters, compact cover-cropped frame) -->
                             <!-- Slides 1-5 (high-res 2060x761 posters, cover-cropped frame) -->
-                            <img src="./assestes/slide1.png" alt="Street Wear — We Don't Follow Trends, We Set the Standards. Lifestyle, Comfort, Culture."
+                            <img src="./assestes/slide1.webp" fetchpriority="high" alt="Street Wear — We Don't Follow Trends, We Set the Standards. Lifestyle, Comfort, Culture."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 1; object-position: center;">
-                            <img src="./assestes/slide2.png" alt="Classic Comfort. Modern Confidence. — Unstoppable Time to Style."
+                            <img src="./assestes/slide2.webp" alt="Classic Comfort. Modern Confidence. — Unstoppable Time to Style."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 0; object-position: center;">
-                            <img src="./assestes/slide3.png" alt="Relaxed Fit, Refined Look — handcrafted leather slide sandals."
+                            <img src="./assestes/slide3.webp" alt="Relaxed Fit, Refined Look — handcrafted leather slide sandals."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 0; object-position: center;">
-                            <img src="./assestes/slide4.png" alt="Walk Your Journey — light and strong BASIC FOOTGEAR lifestyle footwear."
+                            <img src="./assestes/slide4.webp" alt="Walk Your Journey — light and strong BASIC FOOTGEAR lifestyle footwear."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 0; object-position: center;">
-                            <img src="./assestes/slide5.png" alt="The Sandals You'll Reach for All Summer — Easy Style for Everyday Plans."
+                            <img src="./assestes/slide5.webp" alt="The Sandals You'll Reach for All Summer — Easy Style for Everyday Plans."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 0; object-position: center;">
                         </div>
@@ -1282,7 +1302,7 @@
             container.innerHTML = `
                 <!-- ===== Hero banner ===== -->
                 <section class="relative overflow-hidden about-hero-min" style="background-color:#05090A">
-                    <img src="./assestes/aboutusbackground.png" alt="BASIC FOOTGEAR red Puma-style suede sneakers with white stripes and gold branding on an urban rooftop at sunset against a city skyline"
+                    <img src="./assestes/aboutusbackground.png" loading="lazy" decoding="async" alt="BASIC FOOTGEAR red Puma-style suede sneakers with white stripes and gold branding on an urban rooftop at sunset against a city skyline"
                          class="absolute inset-0 w-full h-full object-cover" style="object-position:83% 40%;">
                     <div class="absolute inset-0 about-hero-mask" style="background:linear-gradient(90deg, #05090A 0%, rgba(5,9,10,0.99) 40%, rgba(5,9,10,0.96) 46%, rgba(5,9,10,0.55) 62%, rgba(5,9,10,0.05) 100%);"></div>
                     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 h-full flex flex-col justify-center about-hero-text">
@@ -1306,10 +1326,10 @@
                     </div>
                     <div class="hidden md:flex items-end gap-3 absolute bottom-8 right-6 lg:right-8" aria-hidden="true">
                         <div class="about-polaroid" style="transform:rotate(-4deg)">
-                            <img src="./assestes/menshoe3.png" alt="BASIC FOOTGEAR red sneaker — side view" class="w-24 lg:w-28 aspect-square object-cover">
+                            <img src="./assestes/menshoe3.png" loading="lazy" decoding="async" alt="BASIC FOOTGEAR red sneaker — side view" class="w-24 lg:w-28 aspect-square object-cover">
                         </div>
                         <div class="about-polaroid" style="transform:rotate(3deg)">
-                            <img src="./assestes/shoetopview3.png" alt="BASIC FOOTGEAR red sneaker — top view" class="w-24 lg:w-28 aspect-square object-cover">
+                            <img src="./assestes/shoetopview3.png" loading="lazy" decoding="async" alt="BASIC FOOTGEAR red sneaker — top view" class="w-24 lg:w-28 aspect-square object-cover">
                         </div>
                     </div>
                 </section>
@@ -1317,7 +1337,7 @@
                 <!-- ===== Our Journey (deep black strip, textured backdrop, glass panel) ===== -->
                 <section class="w-full relative overflow-hidden" style="background-color:#0A0A0A">
                     <!-- Subtle footwear texture backdrop + edge falloff -->
-                    <img src="./assestes/about_hero.jpg" aria-hidden="true" alt=""
+                    <img src="./assestes/about_hero.jpg" aria-hidden="true" alt="" loading="lazy" decoding="async"
                          class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
                          style="object-position:50% 35%; opacity:0.13;">
                     <div class="absolute inset-0 pointer-events-none"
@@ -1336,7 +1356,7 @@
                                 <!-- Photo: left design region of the asset, proportional crop, no distortion -->
                                 <div class="journey-photo-crop relative w-full overflow-hidden rounded-xl border border-white/10"
                                      style="box-shadow:0 16px 36px rgba(0,0,0,0.55);">
-                                    <img src="./assestes/aboutpagesecond.png" alt="BASIC FOOTGEAR black sport slides photographed beside a Puma Forever Faster box"
+                                    <img src="./assestes/aboutpagesecond.png" loading="lazy" decoding="async" alt="BASIC FOOTGEAR black sport slides photographed beside a Puma Forever Faster box"
                                          class="absolute journey-photo-img" loading="lazy">
                                 </div>
                                 <!-- Content: real typography, razor-sharp at any scale -->
@@ -1397,7 +1417,7 @@
 
                 <!-- ===== Our Vision banner ===== -->
                 <section class="relative overflow-hidden" style="background-color:#05090A">
-                    <img src="./assestes/about_vision.jpg" alt="BASIC FOOTGEAR man overlooking a mountain valley at sunset"
+                    <img src="./assestes/about_vision.jpg" loading="lazy" decoding="async" alt="BASIC FOOTGEAR man overlooking a mountain valley at sunset"
                          class="absolute inset-0 w-full h-full object-cover" style="object-position:62% 42%;">
                     <div class="absolute inset-0" style="background:linear-gradient(90deg, #05090A 2%, rgba(5,9,10,0.92) 32%, rgba(5,9,10,0.45) 58%, rgba(5,9,10,0.05) 88%);"></div>
                     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
@@ -1425,7 +1445,7 @@
                 <!-- ===== Store & Contact ===== -->
                 <section class="relative w-full overflow-hidden" style="background-color:#32151F">
                     <!-- Luxury backdrop photo fading in from the left edge -->
-                    <img src="./assestes/aboutusbackground.png" aria-hidden="true" alt=""
+                    <img src="./assestes/aboutusbackground.png" aria-hidden="true" alt="" loading="lazy" decoding="async"
                          class="hidden md:block absolute top-0 left-0 h-full w-[40%] object-cover pointer-events-none select-none"
                          style="object-position:92% 42%; opacity:0.5;
                                 -webkit-mask-image:linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
@@ -1663,7 +1683,7 @@
                     <div>
                         <div class="relative h-64 overflow-hidden bg-white" style="padding: 16px; isolation: isolate;">
                             ${isAngleCard ? `
-                            <img data-card-angle-img="${product.id}" src="${currentEntry ? currentEntry.src : product.image}"
+                            <img data-card-angle-img="${product.id}" src="${currentEntry ? currentEntry.src : product.image}" loading="lazy" decoding="async"
                                 ${currentEntry && currentEntry.standin ? `style="transform: ${angleTransformFor(product, angleImages, currentEntry.angle)};"` : ''}
                                 onerror="handleCardImgError(this, '${product.id}', '${currentAngle}')" alt="${product.name}" class="photo-blend w-full h-full object-contain transition-all duration-500">
                             <div class="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md text-[9px] uppercase tracking-widest font-bold pointer-events-none transition-all duration-300"
@@ -1679,7 +1699,7 @@
                                 }).join('')}
                             </div>
                             ` : `
-                            <img src="${product.image}" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" alt="${product.name}" class="w-full h-full object-contain ${(product.cardVariants || product.zoom) ? '' : 'group-hover:scale-105'} transition-all duration-500" ${(product.cardVariants || product.zoom) ? `style="transform: scale(${variantZoom(product, product.cardVariants ? product.cardVariants[0].name : '')});"` : ''}>
+                            <img src="${product.image}" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" loading="lazy" decoding="async" alt="${product.name}" class="w-full h-full object-contain ${(product.cardVariants || product.zoom) ? '' : 'group-hover:scale-105'} transition-all duration-500" ${(product.cardVariants || product.zoom) ? `style="transform: scale(${variantZoom(product, product.cardVariants ? product.cardVariants[0].name : '')});"` : ''}>
                             `}
                         </div>
                         <div class="p-5">
@@ -3312,7 +3332,7 @@
             return `
                     <div data-pid="${p.id}" class="glass-card rounded-2xl overflow-hidden border border-gold/20 group hover:border-gold/50 transition-all">
                         <div class="h-40 overflow-hidden relative">
-                            <img src="${imgSrc}" alt="${p.name}" class="prod-angle-img w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" ${firstEntry && firstEntry.standin ? `style="transform: scaleX(-1);"` : ''}>
+                            <img src="${imgSrc}" loading="lazy" decoding="async" alt="${p.name}" class="prod-angle-img w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" ${firstEntry && firstEntry.standin ? `style="transform: scaleX(-1);"` : ''}>
                             <span class="absolute top-3 right-3 bg-obsidian/80 text-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-gold/30">${category}</span>
                             <div class="absolute bottom-2 left-2 flex gap-1.5 flex-wrap">${chipsHtml}</div>
                         </div>
