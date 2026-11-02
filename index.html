@@ -120,16 +120,12 @@
             transition: opacity 0.7s ease-in-out;
             will-change: opacity;
         }
-        /* Small screens: scale the fixed 480px frame down proportionally so the
-           wide 2.71:1 posters stay balanced instead of over-cropping, and show
-           the full poster (contain) letterboxed over the burgundy background */
-        @media (max-width: 768px) {
-            #heroCarousel {
-                height: min(480px, 62vw) !important;
-            }
-            #heroCarousel .hero-slide {
-                object-fit: contain;
-            }
+        /* Responsive frame tuned to the posters' native 2060x761 aspect (2.707:1):
+           the height always tracks the container width, so the FULL banner photo is
+           visible at every screen size — no half-crop on phones, no burgundy
+           letterboxing. The 480px cap equals the 1300px max-width container. */
+        #heroCarousel {
+            height: min(480px, 37vw);
         }
         .burgundy-glass {
             background: rgba(50, 21, 31, 0.85);
@@ -402,9 +398,15 @@
 
     <!-- Product Detail Modal -->
     <div id="productModal" class="fixed inset-0 bg-obsidian/90 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-charcoal border border-luxuryBorder rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative p-6 sm:p-8">
-            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-mutedText hover:text-gold text-2xl"><i class="fa-solid fa-xmark"></i></button>
-            <div id="modalContent"></div>
+        <!-- Structure: the PANEL never scrolls; only the content div scrolls, so the
+             close chip stays pinned & fully visible/tappable on mobile (was:
+             scrolled-away/cut-off absolute button inside a scrolling panel). -->
+        <div class="bg-charcoal border border-luxuryBorder rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col relative shadow-2xl">
+            <button onclick="closeProductModal()" aria-label="Close product view"
+                class="absolute top-3 right-3 z-[60] w-11 h-11 rounded-full flex items-center justify-center text-gold bg-obsidian/70 border border-gold/40 backdrop-blur-md shadow-lg transition hover:bg-gold hover:text-obsidian active:scale-90">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div id="modalContent" class="overflow-y-auto p-6 sm:p-8"></div>
         </div>
     </div>
 
@@ -1101,7 +1103,7 @@
                     <div class="mx-auto w-[95%] max-w-[1300px]">
                         <div id="heroCarousel" class="relative overflow-hidden select-none"
                              style="border-radius: 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-                                    height: 480px; background-color: #32151F;">
+                                    background-color: #32151F;">
                             <!-- Slides (high-res posters, compact cover-cropped frame) -->
                             <!-- Slides 1-5 (high-res 2060x761 posters, cover-cropped frame) -->
                             <img src="./assestes/slide1.png" alt="Street Wear — We Don't Follow Trends, We Set the Standards. Lifestyle, Comfort, Culture."
@@ -2570,7 +2572,9 @@
         </header>
 
         <!-- MAIN CONTAINER -->
-        <main class="max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 flex-grow space-y-6">
+        <!-- pb-28 (mobile) keeps scrollable dashboard content clear of the fixed
+             "Close Dashboard · Return to Store" pill that floats bottom-right -->
+        <main class="max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 pb-28 lg:pb-6 flex-grow space-y-6">
 
             <!-- ANALYTICS KPI OVERVIEW CARDS (COD Specific) -->
             <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -2767,7 +2771,7 @@
         </footer>
 
         <!-- ORDER DETAILS MODAL -->
-        <div id="orderModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div id="orderModal" class="fixed inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
             <div class="glass-card-burgundy w-full max-w-lg rounded-2xl border border-gold/40 p-6 space-y-4 relative shadow-2xl animate-fade-in">
                 <button onclick="closeModal('orderModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gold text-lg">
                     <i class="fa-solid fa-xmark"></i>
@@ -2786,12 +2790,12 @@
         </div>
 
         <!-- ADD / EDIT PRODUCT MODAL -->
-        <div id="addProductModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div id="addProductModal" class="fixed inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
             <div class="w-full max-w-lg rounded-2xl relative p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto"
                  style="background:linear-gradient(160deg, #1C0B12 0%, #0A0A0A 60%);
                         border:1px solid #D4AF37;
                         box-shadow:0 0 60px rgba(212,175,55,0.12), 0 24px 48px rgba(0,0,0,0.7);">
-                <button onclick="closeModal('addProductModal')" class="absolute top-4 right-4 text-gray-400 hover:text-[#D4AF37] text-lg">
+                <button onclick="closeModal('addProductModal')" class="absolute top-4 right-4 z-10 text-gray-400 hover:text-[#D4AF37] text-lg transition">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
                 <h3 class="font-serif font-bold text-xl text-gold-gradient">Add New Footwear Model</h3>
