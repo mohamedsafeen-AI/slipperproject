@@ -287,7 +287,7 @@
                 <span class="block flex items-center justify-center overflow-hidden rounded-lg shrink-0 transition duration-300"
                       style="border: 1px solid rgba(214, 181, 116, 0.3);
                              box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);">
-                    <img src="./assestes/slipperprojectlogo.jpg" alt="Basic Footgear — Gear Up. Stand Bold."
+                    <img src="./assestes/slipperprojectlogo.jpg" decoding="async" alt="Basic Footgear — Gear Up. Stand Bold."
                          class="block group-hover:brightness-105 transition duration-300"
                          style="height: 44px; width: auto; max-width: 160px; object-fit: contain;
                                 border-radius: 8px;
@@ -358,7 +358,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-luxuryBorder/60">
             <div>
                 <span class="block w-fit mb-4 overflow-hidden rounded-lg" style="border:1px solid rgba(214,181,116,0.3); box-shadow:0 4px 14px rgba(0,0,0,0.45);">
-                    <img src="./assestes/slipperprojectlogo.jpg" alt="Basic Footgear — Gear Up. Stand Bold." class="block" style="height:52px; width:auto; max-width:180px; object-fit:contain; border-radius:8px;">
+                    <img src="./assestes/slipperprojectlogo.jpg" decoding="async" alt="Basic Footgear — Gear Up. Stand Bold." class="block" style="height:52px; width:auto; max-width:180px; object-fit:contain; border-radius:8px;">
                 </span>
                 <p class="text-xs" style="color:#B9B2AD">Luxury in Every Step.</p>
             </div>
@@ -1138,25 +1138,25 @@
                                  alt="Street Wear — We Don't Follow Trends, We Set the Standards. Lifestyle, Comfort, Culture."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 1; object-position: center;">
-                            <img src="./assestes/slide2.webp" width="2065" height="761"
+                            <img src="./assestes/slide2.webp" fetchpriority="low" decoding="async" width="2065" height="761"
                                  srcset="./assestes/slide2_480.webp 480w, ./assestes/slide2_800.webp 800w, ./assestes/slide2.webp 2065w"
                                  sizes="(min-width: 1370px) 1234px, 95vw"
                                  alt="Classic Comfort. Modern Confidence. — Unstoppable Time to Style."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 0; object-position: center;">
-                            <img src="./assestes/slide3.webp" width="2066" height="761"
+                            <img src="./assestes/slide3.webp" fetchpriority="low" decoding="async" width="2066" height="761"
                                  srcset="./assestes/slide3_480.webp 480w, ./assestes/slide3_800.webp 800w, ./assestes/slide3.webp 2066w"
                                  sizes="(min-width: 1370px) 1234px, 95vw"
                                  alt="Relaxed Fit, Refined Look — handcrafted leather slide sandals."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 0; object-position: center;">
-                            <img src="./assestes/slide4.webp" width="2070" height="760"
+                            <img src="./assestes/slide4.webp" fetchpriority="low" decoding="async" width="2070" height="760"
                                  srcset="./assestes/slide4_480.webp 480w, ./assestes/slide4_800.webp 800w, ./assestes/slide4.webp 2070w"
                                  sizes="(min-width: 1370px) 1234px, 95vw"
                                  alt="Walk Your Journey — light and strong BASIC FOOTGEAR lifestyle footwear."
                                  class="hero-slide absolute inset-0 w-full h-full object-cover object-center"
                                  style="opacity: 0; object-position: center;">
-                            <img src="./assestes/slide5.webp" width="2067" height="761"
+                            <img src="./assestes/slide5.webp" fetchpriority="low" decoding="async" width="2067" height="761"
                                  srcset="./assestes/slide5_480.webp 480w, ./assestes/slide5_800.webp 800w, ./assestes/slide5.webp 2067w"
                                  sizes="(min-width: 1370px) 1234px, 95vw"
                                  alt="The Sandals You'll Reach for All Summer — Easy Style for Everyday Plans."
@@ -2029,7 +2029,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div>
                         <div class="relative h-72 sm:h-80 rounded-xl overflow-hidden border border-luxuryBorder bg-white" style="padding: 25px; isolation: isolate;">
-                            <img id="modalImage" src="${modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : product.image)}" srcset="${srcsetForSrc(modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : product.image))}" sizes="(max-width: 767px) 88vw, 560px" ${modalAngleEntries ? `style="transform: ${angleTransformFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle)};"` : ''} onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="photo-blend w-full h-full object-contain transition-all duration-300" alt="${product.name}">
+                            <img id="modalImage" src="${modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : product.image)}" srcset="${srcsetForSrc(modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : product.image))}" sizes="(max-width: 767px) 88vw, 560px" ${modalAngleEntries ? `style="transform: ${angleTransformFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle)};"` : ''} onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="photo-blend w-full h-full object-contain transition-all duration-300" decoding="async" alt="${product.name}">
                     </div>
                     <p class="text-[10px] uppercase tracking-widest text-gold mt-2 text-center font-semibold" id="modalAngleName">Now Viewing: ${modalAngleEntries ? angleLabelFor(product, modalPrimaryAngle) : 'Main View'}</p>
                     ${modalAngleEntries && modalAngleEntries.length ? `<div class="grid grid-cols-${Math.max(modalAngleEntries.length, 1)} gap-2 mt-2" id="angleWrap">
@@ -2565,7 +2565,12 @@
         }
 
         // Initial Load
-        window.onload = function() {
+        // PERF: was window.onload — that waits for EVERY subresource (async font
+        // CSS, Google Fonts, Font Awesome, all images) before rendering the home
+        // view, serialising the LCP hero behind the font chain. DOMContentLoaded
+        // gives us the same guaranteed-complete DOM (all sections parsed) without
+        // waiting on any network resources.
+        function bootStorefront() {
             loadCart();
             updateCartUI();
             navigateTo('home');
@@ -2582,7 +2587,12 @@
                 }
                 try { history.replaceState(null, '', window.location.pathname); } catch (err) { /* file:// guard */ }
             }
-        };
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootStorefront);
+        } else {
+            bootStorefront();
+        }
     </script>
 
     <!-- ============================================================
@@ -2643,7 +2653,7 @@
                     <!-- Admin Profile -->
                     <div class="flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-gold to-burgundy p-0.5 shadow-md shrink-0">
-                            <img src="https://ui-avatars.com/api/?name=Store+Owner&background=32151F&color=D6B574&bold=true" alt="Store Owner profile photo" class="w-full h-full rounded-full object-cover">
+                            <img src="https://ui-avatars.com/api/?name=Store+Owner&background=32151F&color=D6B574&bold=true" decoding="async" alt="Store Owner profile photo" class="w-full h-full rounded-full object-cover">
                         </div>
                         <div class="text-left min-w-0">
                             <h4 class="text-xs font-bold text-gray-100 whitespace-nowrap">Store Owner</h4>
@@ -2923,7 +2933,7 @@
                                 <input type="file" accept="image/*" id="newProdImgFront" class="hidden" onchange="adminAngleFile(this, 'Front')">
                             </label>
                             <div id="newProdPrevWrapFront" class="hidden w-10 h-10 rounded-lg overflow-hidden shrink-0" style="border:1px solid #D4AF37;">
-                                <img id="newProdPrevFront" class="w-full h-full object-cover" alt="Front angle preview">
+                                <img id="newProdPrevFront" decoding="async" class="w-full h-full object-cover" alt="Front angle preview">
                             </div>
                         </div>
                         <input type="text" id="newProdPathFront" oninput="adminAnglePath(this, 'Front')" aria-label="Front view image file path" placeholder="images/menshoefront1.png"
@@ -2940,7 +2950,7 @@
                                 <input type="file" accept="image/*" id="newProdImgSide" class="hidden" onchange="adminAngleFile(this, 'Side')">
                             </label>
                             <div id="newProdPrevWrapSide" class="hidden w-10 h-10 rounded-lg overflow-hidden shrink-0" style="border:1px solid #D4AF37;">
-                                <img id="newProdPrevSide" class="w-full h-full object-cover" alt="Side angle preview">
+                                <img id="newProdPrevSide" decoding="async" class="w-full h-full object-cover" alt="Side angle preview">
                             </div>
                         </div>
                         <input type="text" id="newProdPathSide" oninput="adminAnglePath(this, 'Side')" aria-label="Side view image file path" placeholder="images/menshoeside1.png"
@@ -2957,7 +2967,7 @@
                                 <input type="file" accept="image/*" id="newProdImgTop" class="hidden" onchange="adminAngleFile(this, 'Top')">
                             </label>
                             <div id="newProdPrevWrapTop" class="hidden w-10 h-10 rounded-lg overflow-hidden shrink-0" style="border:1px solid #D4AF37;">
-                                <img id="newProdPrevTop" class="w-full h-full object-cover" alt="Top angle preview">
+                                <img id="newProdPrevTop" decoding="async" class="w-full h-full object-cover" alt="Top angle preview">
                             </div>
                         </div>
                         <input type="text" id="newProdPathTop" oninput="adminAnglePath(this, 'Top')" aria-label="Top or sole view image file path" placeholder="images/menshoetop1.png"
