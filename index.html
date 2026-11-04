@@ -12,8 +12,8 @@
          If new utility classes are added in markup, regenerate the stylesheet
          or write plain CSS instead. Config colors are baked into the file. -->
     <link href="./tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"></noscript>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" referrerpolicy="no-referrer"></noscript>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet"></noscript>
     <style>
@@ -775,6 +775,29 @@
             [6, 8, 9, 10, 11], [7, 8, 9, 10], [6, 7, 8, 9, 11]
         ];
         const FALLBACK_IMAGE = 'https://images.pexels.com/photos/14187813/pexels-photo-14187813.jpeg?auto=compress&cs=tinysrgb&w=800';
+
+        // ===== SECURITY HELPERS (XSS defense) =====
+        // Customer- and owner-entered text (names, addresses, notes, chat
+        // messages, uploaded paths, color names) MUST pass through bfEsc()
+        // before innerHTML template interpolation. bfSafeColor() additionally
+        // validates CSS colors so style attributes can't be broken open.
+        function bfEsc(value) {
+            // Replacement targets are written as backslash-u0026 JS escapes so
+            // this source always contains the real HTML reference strings even
+            // if the file is copied/transformed by editors that rewrite text.
+            return String(value == null ? '' : value)
+                .replace(/[&<>"']/g, ch => ({
+                    '&': '\u0026amp;',
+                    '<': '\u0026lt;',
+                    '>': '\u0026gt;',
+                    '"': '\u0026quot;',
+                    "'": '\u0026#39;'
+                }[ch]));
+        }
+        function bfSafeColor(value) {
+            const v = String(value == null ? '' : value).trim();
+            return /^#[0-9A-Fa-f]{3,8}$/.test(v) ? v : 'transparent';
+        }
         // 47-image shared pool (all HTTP 200, no shoes/sneakers/heels) — the first 7 are used
         // for the generated items; the rest serve as color-variant imagery via the modulo maps below
         const SLIPPER_IMAGES = [
@@ -1671,42 +1694,42 @@
             const currentEntry = isAngleCard ? (angleEntries.find(e => e.angle === currentAngle) || angleEntries[0]) : null;
             return `
                 <div class="bg-charcoal border border-luxuryBorder rounded-xl overflow-hidden hover:border-gold transition-all duration-300 group flex flex-col justify-between"
-                    ${isAngleCard ? `onmouseenter="cardSliderStart('${product.id}')" onmouseleave="cardSliderStop('${product.id}', true)"` : ''}>
+                    ${isAngleCard ? `onmouseenter="cardSliderStart('${bfEsc(product.id)}')" onmouseleave="cardSliderStop('${bfEsc(product.id)}', true)"` : ''}>
                     <div>
                         <div class="relative h-64 overflow-hidden bg-white" style="padding: 16px; isolation: isolate;">
                             ${isAngleCard ? `
-                            <img data-card-angle-img="${product.id}" src="${currentEntry ? currentEntry.src : product.image}" srcset="${srcsetForSrc(currentEntry ? currentEntry.src : product.image)}" sizes="(max-width: 639px) 92vw, (max-width: 1023px) 46vw, 30vw" loading="lazy" decoding="async"
+                            <img data-card-angle-img="${bfEsc(product.id)}" src="${bfEsc(currentEntry ? currentEntry.src : product.image)}" srcset="${srcsetForSrc(currentEntry ? currentEntry.src : product.image)}" sizes="(max-width: 639px) 92vw, (max-width: 1023px) 46vw, 30vw" loading="lazy" decoding="async"
                                 ${currentEntry && currentEntry.standin ? `style="transform: ${angleTransformFor(product, angleImages, currentEntry.angle)};"` : ''}
-                                onerror="handleCardImgError(this, '${product.id}', '${currentAngle}')" alt="${product.name}" class="photo-blend w-full h-full object-contain transition-all duration-500">
+                                onerror="handleCardImgError(this, '${bfEsc(product.id)}', '${currentAngle}')" alt="${bfEsc(product.name)}" class="photo-blend w-full h-full object-contain transition-all duration-500">
                             <div class="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md text-[9px] uppercase tracking-widest font-bold pointer-events-none transition-all duration-300"
-                                data-angle-chip="${product.id}"
+                                data-angle-chip="${bfEsc(product.id)}"
                                 style="background: rgba(10, 10, 10, 0.72); color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
                                 ${angleLabelFor(product, currentEntry ? currentEntry.angle : 'top')}
                             </div>
-                            <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5" data-card-dots="${product.id}">
+                            <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5" data-card-dots="${bfEsc(product.id)}">
                                 ${angleEntries.map(({ angle: a }) => {
                                     const active = currentAngle === a;
-                                    return `<button type="button" onclick="cardAngleSet('${product.id}', '${a}')" data-angle="${a}" title="${angleLabelFor(product, a)}" aria-label="Show ${angleLabelFor(product, a)} of ${product.name}"
+                                    return `<button type="button" onclick="cardAngleSet('${bfEsc(product.id)}', '${a}')" data-angle="${a}" title="${angleLabelFor(product, a)}" aria-label="Show ${angleLabelFor(product, a)} of ${bfEsc(product.name)}"
                                         class="card-dot h-2 ${active ? 'w-4 rounded-full bg-gold' : 'w-2 rounded-full bg-obsidian/20 hover:bg-obsidian/40'} transition-all duration-200"></button>`;
                                 }).join('')}
                             </div>
                             ` : `
-                            <img src="${product.image}" srcset="${srcsetForSrc(product.image)}" sizes="(max-width: 639px) 92vw, (max-width: 1023px) 46vw, 30vw" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" loading="lazy" decoding="async" alt="${product.name}" class="w-full h-full object-contain ${(product.cardVariants || product.zoom) ? '' : 'group-hover:scale-105'} transition-all duration-500" ${(product.cardVariants || product.zoom) ? `style="transform: scale(${variantZoom(product, product.cardVariants ? product.cardVariants[0].name : '')});"` : ''}>
+                            <img src="${bfEsc(product.image)}" srcset="${srcsetForSrc(product.image)}" sizes="(max-width: 639px) 92vw, (max-width: 1023px) 46vw, 30vw" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" loading="lazy" decoding="async" alt="${bfEsc(product.name)}" class="w-full h-full object-contain ${(product.cardVariants || product.zoom) ? '' : 'group-hover:scale-105'} transition-all duration-500" ${(product.cardVariants || product.zoom) ? `style="transform: scale(${variantZoom(product, product.cardVariants ? product.cardVariants[0].name : '')});"` : ''}>
                             `}
                         </div>
                         <div class="p-5">
                             <div class="flex justify-between items-center mb-1">
                                 <span class="text-[10px] uppercase text-gold tracking-widest font-semibold">${product.category === 'slippers' ? 'Slipper / Sandal' : 'Dress Shoe'}</span>
                             </div>
-                            <h3 class="font-serif font-bold text-ivory text-base mb-2 group-hover:text-gold transition whitespace-nowrap overflow-hidden text-ellipsis">${product.name}</h3>
-                            <p class="text-xs text-mutedText mb-4 whitespace-nowrap overflow-hidden text-ellipsis">${product.description}</p>
-                            ${product.cardVariants ? `<div class="flex items-center gap-2" data-variants="${product.id}">
+                            <h3 class="font-serif font-bold text-ivory text-base mb-2 group-hover:text-gold transition whitespace-nowrap overflow-hidden text-ellipsis">${bfEsc(product.name)}</h3>
+                            <p class="text-xs text-mutedText mb-4 whitespace-nowrap overflow-hidden text-ellipsis">${bfEsc(product.description)}</p>
+                            ${product.cardVariants ? `<div class="flex items-center gap-2" data-variants="${bfEsc(product.id)}">
                                 <span class="text-[10px] uppercase text-mutedText tracking-widest">Color:</span>
                                 ${product.cardVariants.map(v => {
                                     const active = (cardColor[product.id] || product.cardVariants[0].name) === v.name;
-                                    return `<button type="button" onclick="pickCardVariant('${product.id}', '${v.name}')" data-variant="${v.name}" title="${v.name}"
+                                    return `<button type="button" onclick="pickCardVariant('${bfEsc(product.id)}', '${bfEsc(v.name)}')" data-variant="${bfEsc(v.name)}" title="${bfEsc(v.name)}"
                                         class="variant-btn w-5 h-5 rounded-full border-2 transition duration-200 ${active ? 'border-gold ring-2 ring-gold/40' : 'border-luxuryBorder hover:border-gold'}"
-                                        style="background-color:${v.hex}"></button>`;
+                                        style="background-color:${bfSafeColor(v.hex)}"></button>`;
                                 }).join('')}
                             </div>` : ''}
                             <div class="mt-2.5">
@@ -1716,10 +1739,10 @@
                     </div>
                     <div class="p-5 pt-3 flex items-center justify-end border-t border-luxuryBorder/40 mt-2">
                         <div class="flex space-x-2">
-                            <button onclick="openProductModal('${product.id}')" aria-label="View ${product.name} details" title="Quick view" class="p-2.5 bg-obsidian border border-luxuryBorder rounded-lg text-ivory hover:text-gold hover:border-gold transition">
+                            <button onclick="openProductModal('${bfEsc(product.id)}')" aria-label="View ${bfEsc(product.name)} details" title="Quick view" class="p-2.5 bg-obsidian border border-luxuryBorder rounded-lg text-ivory hover:text-gold hover:border-gold transition">
                                 <i class="fa-solid fa-eye text-xs"></i>
                             </button>
-                            <button onclick="addToCart('${product.id}')" class="gold-btn px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider">
+                            <button onclick="addToCart('${bfEsc(product.id)}')" class="gold-btn px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider">
                                 Add
                             </button>
                         </div>
@@ -2027,7 +2050,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div>
                         <div class="relative h-72 sm:h-80 rounded-xl overflow-hidden border border-luxuryBorder bg-white" style="padding: 25px; isolation: isolate;">
-                            <img id="modalImage" src="${modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : product.image)}" srcset="${srcsetForSrc(modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : product.image))}" sizes="(max-width: 767px) 88vw, 560px" ${modalAngleEntries ? `style="transform: ${angleTransformFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle)};"` : ''} onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="photo-blend w-full h-full object-contain transition-all duration-300" decoding="async" alt="${product.name}">
+                            <img id="modalImage" src="${modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : bfEsc(product.image))}" srcset="${srcsetForSrc(modalAngleEntries ? angleSrcFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle) : (product.cardVariants ? resolveVariant(product, selectedColor) : bfEsc(product.image)))}" sizes="(max-width: 767px) 88vw, 560px" ${modalAngleEntries ? `style="transform: ${angleTransformFor(product, resolveCardImages(product) || product.images, modalPrimaryAngle)};"` : ''} onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="photo-blend w-full h-full object-contain transition-all duration-300" decoding="async" alt="${bfEsc(product.name)}">
                     </div>
                     <p class="text-[10px] uppercase tracking-widest text-gold mt-2 text-center font-semibold" id="modalAngleName">Now Viewing: ${modalAngleEntries ? angleLabelFor(product, modalPrimaryAngle) : 'Main View'}</p>
                     ${modalAngleEntries && modalAngleEntries.length ? `<div class="grid grid-cols-${Math.max(modalAngleEntries.length, 1)} gap-2 mt-2" id="angleWrap">
@@ -2035,9 +2058,9 @@
                             const label = angleLabelFor(product, a);
                             const active = i === 0;   // modal always opens on the primary view
                             return `<div class="text-center">
-                                <button type="button" onclick="pickAngle('${product.id}', '${a}')" data-angle="${a}" title="${label}" aria-label="Show ${label} of ${product.name}"
+                                <button type="button" onclick="pickAngle('${bfEsc(product.id)}', '${a}')" data-angle="${a}" title="${label}" aria-label="Show ${label} of ${bfEsc(product.name)}"
                                     class="angle-btn w-full h-14 rounded-lg border-2 overflow-hidden bg-white p-1 flex items-center justify-center transition duration-200 ${active ? 'border-gold ring-2 ring-gold/40' : 'border-luxuryBorder hover:border-gold'}">
-                                    <img src="${src}" ${standin ? `style="transform: ${angleTransformFor(product, resolveCardImages(product) || product.images, a)};"` : ''} onerror="this.onerror=null; this.src='${product.image}'; setAngleTransform(this, '${product.category === 'slippers' ? a : 'top'}');" class="photo-blend max-w-full max-h-full object-contain" alt="${label}">
+                                    <img src="${bfEsc(src)}" ${standin ? `style="transform: ${angleTransformFor(product, resolveCardImages(product) || product.images, a)};"` : ''} onerror="this.onerror=null; this.src='${bfEsc(product.image)}'; setAngleTransform(this, '${product.category === 'slippers' ? a : 'top'}');" class="photo-blend max-w-full max-h-full object-contain" alt="${label}">
                                 </button>
                                 <p data-angle-cap="${a}" class="text-[9px] uppercase tracking-widest ${active ? 'text-gold' : 'text-mutedText'} mt-1">${label}</p>
                             </div>`;
@@ -2046,21 +2069,21 @@
                     </div>
                     <div>
                         <span class="text-xs text-gold font-serif tracking-widest uppercase">${product.category}</span>
-                        <h2 class="font-serif text-2xl font-bold text-ivory mt-1 mb-2">${product.name}</h2>
+                        <h2 class="font-serif text-2xl font-bold text-ivory mt-1 mb-2">${bfEsc(product.name)}</h2>
                         <!-- Price intentionally not displayed (clean COD storefront) -->
-                        <p class="text-xs text-mutedText leading-relaxed mb-6">${product.description}</p>
+                        <p class="text-xs text-mutedText leading-relaxed mb-6">${bfEsc(product.description)}</p>
                         
                         ${product.cardVariants ? `
                         <div class="mb-6">
                             <label class="block text-xs text-gold mb-2 uppercase font-semibold">Select Color:</label>
                             <div class="flex flex-wrap gap-3" id="colorWrap">
                                 ${product.cardVariants.map(v => `
-                                    <button type="button" onclick="pickModalVariant('${product.id}', '${v.name}')" data-color="${v.name}" title="${v.name}" aria-label="Select ${v.name} color"
+                                    <button type="button" onclick="pickModalVariant('${bfEsc(product.id)}', '${bfEsc(v.name)}')" data-color="${bfEsc(v.name)}" title="${bfEsc(v.name)}" aria-label="Select ${bfEsc(v.name)} color"
                                         class="color-btn w-9 h-9 rounded-full border-2 flex items-center justify-center transition duration-200 ${v.name === selectedColor ? 'border-gold ring-2 ring-gold/40' : 'border-luxuryBorder hover:border-gold'}"
-                                        style="background-color:${v.hex}">
+                                        style="background-color:${bfSafeColor(v.hex)}">
                                     </button>`).join('')}
                             </div>
-                            <p id="colorName" class="text-xs text-mutedText mt-2">Selected Color: ${selectedColor}</p>
+                            <p id="colorName" class="text-xs text-mutedText mt-2">Selected Color: ${bfEsc(selectedColor)}</p>
                         </div>` : ''}
 
                         <div class="mb-6">
@@ -2072,7 +2095,7 @@
                             <p id="sizeWarn" class="hidden text-xs text-gold mt-2">Please select a size first.</p>
                         </div>
 
-                        <button onclick="addSelectionToCart('${product.id}')" class="gold-btn w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest">
+                        <button onclick="addSelectionToCart('${bfEsc(product.id)}')" class="gold-btn w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest">
                             Add to Cart & Order
                         </button>
                     </div>
@@ -2378,14 +2401,14 @@
             list.innerHTML = cart.map(item => `
                 <div class="flex items-center justify-between p-3 bg-obsidian border border-luxuryBorder rounded-lg">
                     <div class="flex items-center space-x-3">
-                        <img src="${item.pickedImage || item.image}" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="w-12 h-12 object-cover rounded border border-luxuryBorder" alt="${item.name}">
+                        <img src="${bfEsc(item.pickedImage || item.image)}" onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'" class="w-12 h-12 object-cover rounded border border-luxuryBorder" alt="${bfEsc(item.name)}">
                         <div>
-                            <h4 class="text-xs font-bold text-ivory">${item.name}</h4>
+                            <h4 class="text-xs font-bold text-ivory">${bfEsc(item.name)}</h4>
                             <p class="text-xs text-gold">Qty: ${item.qty}</p>
-                            <p class="text-[10px] text-mutedText">Size: ${item.pickedSize || '—'}${item.pickedColor ? ` • Color: ${item.pickedColor}` : ''}</p>
+                            <p class="text-[10px] text-mutedText">Size: ${bfEsc(item.pickedSize || '—')}${item.pickedColor ? ` • Color: ${bfEsc(item.pickedColor)}` : ''}</p>
                         </div>
                     </div>
-                    <button onclick="removeFromCart('${item.key}')" aria-label="Remove ${item.name} from cart" class="text-mutedText hover:text-red-400 text-xs p-1">
+                    <button onclick="removeFromCart('${bfEsc(item.key)}')" aria-label="Remove ${bfEsc(item.name)} from cart" class="text-mutedText hover:text-red-400 text-xs p-1">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </div>
@@ -2658,6 +2681,12 @@
                             <p class="text-[10px] text-emerald-400 whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i>+91 9384798122</p>
                         </div>
                     </div>
+
+                    <!-- Logout: ends the admin session, returns to the locked sign-in gate -->
+                    <button onclick="adminLogout()" title="Logout / End Admin Session"
+                        class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-rose-500/10 hover:bg-rose-500 border border-rose-400/40 text-rose-300 hover:text-white text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-md">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
 
                     <!-- Close Dashboard / Return to Store -->
                     <button onclick="closeAdminDashboard()" title="Close Dashboard / Return to Store"
@@ -3112,21 +3141,45 @@
             }
         ];
 
-        // Orders registered by real customers through the storefront cart are
-        // persisted in localStorage so they survive refreshes / new sessions.
+        // Orders management persistence — the FULL ordersData array (default
+        // seed rows, storefront-registered and admin-added alike) is stored
+        // under the single 'orders' key. Every mutation (new order, status
+        // change, delete) saves immediately, and on load the stored copy
+        // REPLACES the defaults — so any order deleted in the dashboard stays
+        // deleted after refresh.
         function saveOrdersData() {
             try {
-                localStorage.setItem('bfSavedOrders', JSON.stringify(ordersData.filter(o => o.source === 'store')));
+                localStorage.setItem('orders', JSON.stringify(ordersData));
             } catch (err) { /* storage full — dashboard keeps working for this session */ }
         }
-        try {
-            const savedOrders = JSON.parse(localStorage.getItem('bfSavedOrders') || '[]');
-            if (Array.isArray(savedOrders)) {
-                savedOrders.forEach(o => {
-                    if (o && o.id && !ordersData.some(x => x.id === o.id)) ordersData.unshift(o);
-                });
-            }
-        } catch (err) { /* corrupt storage — fall back to seed data */ }
+        (function loadOrdersData() {
+            // 1) The stored copy — INCLUDING an intentionally empty array —
+            //    is the source of truth. JSON.parse('null') yields null only
+            //    when the key is ABSENT, so a first visit (key missing) stays
+            //    distinguishable from "user deleted every order" ([]), and an
+            //    empty dashboard persists as empty across reloads.
+            try {
+                const saved = JSON.parse(localStorage.getItem('orders') || 'null');
+                if (Array.isArray(saved)) {
+                    ordersData = saved;
+                    return;
+                }
+            } catch (err) { /* corrupt storage — fall back to defaults below */ }
+            // 2) One-time migration from the legacy key (older build persisted
+            //    only storefront-sourced orders there) — runs only when 'orders'
+            //    is absent, never after a real stored list exists.
+            try {
+                const legacy = JSON.parse(localStorage.getItem('bfSavedOrders') || '[]');
+                if (Array.isArray(legacy)) {
+                    legacy.forEach(o => {
+                        if (o && o.id && !ordersData.some(x => x.id === o.id)) ordersData.unshift(o);
+                    });
+                }
+            } catch (err) { /* no usable legacy data — keep defaults */ }
+            // 3) Key absent/corrupt: persist defaults so the key exists from
+            //    now on and future deletions stay deleted.
+            saveOrdersData();
+        })();
 
         // STOCK LEVELS — the admin grid is driven by the LIVE storefront catalog
         // (PRODUCTS, ~50 slippers + shoes incl. owner-added models). Only stock
@@ -3176,6 +3229,15 @@
 
         // TOGGLE: open the dashboard overlay over the storefront
         function openAdminDashboard() {
+            // ===== ACCESS CHECK ("check-user-access") =====
+            // The hidden dashboard markup can be un-hidden trivially in devtools,
+            // so entry is gated here as well: without a live/expiry-valid session
+            // the overlay never opens — the sign-in modal is shown instead.
+            if (!adminHasValidSession()) {
+                openAdminAuthModal();
+                showToast('Admin session expired — please sign in.');
+                return;
+            }
             document.getElementById('adminDashboard').classList.remove('hidden');
             document.body.style.overflow = 'hidden'; // lock storefront scroll while open
             document.getElementById('adminDashboard').scrollTop = 0;
@@ -3195,15 +3257,78 @@
         }
 
         // ============================================================
-        // ADMIN AUTHENTICATION — strict hardcoded credential gate
-        // BOTH the exact admin email AND exact password must match,
-        // otherwise access is denied, fields are cleared, and an
-        // inline error is shown.
+        // ADMIN AUTHENTICATION — hardened credential gate
+        // 1) The password is stored ONLY as a salted SHA-256 hash — never in
+        //    plaintext. Login hashes the submitted value with the same salt
+        //    and compares against it.
+        // 2) Brute-force lockout: 5 failed attempts lock the gate for 5
+        //    minutes (persisted in localStorage so a reload doesn't reset it).
+        // 3) Session gating: a successful login issues a 60-minute session in
+        //    sessionStorage; openAdminDashboard() verifies it, so the hidden
+        //    markup alone can never reveal admin data without a live session.
+        // NOTE: a client-only page always ships its JS to the browser, so this
+        // can never equal a server-side login. It removes the plaintext
+        // secret and stops casual tampering; for real multi-admin auth move
+        // the gate to a backend (e.g. Supabase/Firebase).
         // ============================================================
         const ADMIN_EMAIL = 'mohamedsafeen590@gmail.com';
-        const ADMIN_PASSWORD = 'admin123';
+        const AUTH_SALT = 'bfkg-admin-v1:';
+        // sha256(AUTH_SALT + ADMIN_PASSWORD) — regenerate after any password change
+        const ADMIN_PASSWORD_HASH = '546542634d761070335c70b64b77a27fcd2293fc78c091e8ead5d98a19f17668';
+        const AUTH_LOCK_MAX = 5;                 // failed attempts before lockout
+        const AUTH_LOCK_MS = 5 * 60 * 1000;      // lockout duration
+        const AUTH_SESSION_MS = 60 * 60 * 1000;  // dashboard session lifetime
+
+        function authLockState() {
+            try {
+                const s = JSON.parse(localStorage.getItem('bfAuthLock') || '');
+                if (s && typeof s.n === 'number' && typeof s.until === 'number') return s;
+            } catch (err) { /* absent or corrupt storage — fresh state */ }
+            return { n: 0, until: 0 };
+        }
+        function authLockSave(state) {
+            try { localStorage.setItem('bfAuthLock', JSON.stringify(state)); } catch (err) { /* storage unavailable */ }
+        }
+
+        async function sha256Hex(text) {
+            if (!(window.crypto && crypto.subtle)) throw new Error('NO_SECURE_CONTEXT');
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function adminHasValidSession() {
+            try {
+                const s = JSON.parse(sessionStorage.getItem('bfAdminSession') || '');
+                return !!(s && typeof s.exp === 'number' && s.exp > Date.now());
+            } catch (err) { return false; }
+        }
+
+        // LOGOUT: wipe every piece of authentication state so the next
+        // dashboard access requires a fresh sign-in. The brute-force lock
+        // counter is reset too — a logged-in admin is already verified.
+        function adminLogout() {
+            try { sessionStorage.removeItem('bfAdminSession'); } catch (err) { /* storage unavailable */ }
+            try { localStorage.removeItem('bfAdminSession'); } catch (err) { /* not mirrored — ignore */ }
+            authLockSave({ n: 0, until: 0 });
+            closeAdminDashboard();
+            showToast('Logged out securely. Sign in again to access the dashboard.');
+        }
+
+        function showAdminAuthError(message) {
+            const err = document.getElementById('adminAuthError');
+            if (!err) return;
+            err.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ' + bfEsc(message);
+            err.classList.remove('hidden');
+        }
 
         function openAdminAuthModal() {
+            // Session re-entry: with a live, expiry-valid session the Admin
+            // Portal reopens the dashboard directly instead of re-asking
+            // for the password.
+            if (adminHasValidSession()) {
+                openAdminDashboard();
+                return;
+            }
             document.getElementById('adminAuthError').classList.add('hidden');
             document.getElementById('adminAuthModal').classList.remove('hidden');
             setTimeout(() => document.getElementById('adminAuthEmail').focus(), 120);
@@ -3223,22 +3348,46 @@
             document.getElementById('adminAuthEyeIcon').className = 'fa-regular fa-eye';
         }
 
-        function handleAdminLogin(e) {
+        async function handleAdminLogin(e) {
             e.preventDefault();
             const email = document.getElementById('adminAuthEmail').value.trim();
             const password = document.getElementById('adminAuthPassword').value;
-            const err = document.getElementById('adminAuthError');
+            const lock = authLockState();
 
-            // STRICT CHECK: exact email AND exact password, nothing else opens the dashboard
-            if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-                err.classList.add('hidden');
+            // LOCKOUT: block guessing while the lock window is active
+            const nowMs = Date.now();
+            if (nowMs < lock.until) {
+                const mins = Math.max(1, Math.ceil((lock.until - nowMs) / 60000));
+                clearAdminAuthFields();
+                showAdminAuthError('Too many failed attempts. Try again in about ' + mins + ' minute(s).');
+                return;
+            }
+
+            let hash = '';
+            try {
+                hash = await sha256Hex(AUTH_SALT + password);
+            } catch (err) {
+                showAdminAuthError('Login requires a secure origin (https or localhost).');
+                return;
+            }
+
+            // STRICT CHECK: exact email AND matching password hash
+            if (email === ADMIN_EMAIL && hash === ADMIN_PASSWORD_HASH) {
+                authLockSave({ n: 0, until: 0 });
+                sessionStorage.setItem('bfAdminSession', JSON.stringify({ t: Date.now(), exp: Date.now() + AUTH_SESSION_MS }));
                 closeAdminAuthModal();
                 openAdminDashboard();
                 showToast('Welcome back, Executive Admin!');
             } else {
-                // DENY: clear inputs + inline error message
+                const n = (lock.n || 0) + 1;
+                const until = n >= AUTH_LOCK_MAX ? Date.now() + AUTH_LOCK_MS : 0;
+                authLockSave({ n: until ? 0 : n, until });
                 clearAdminAuthFields();
-                err.classList.remove('hidden');
+                if (until) {
+                    showAdminAuthError('Too many failed attempts. Locked for 5 minutes.');
+                } else {
+                    showAdminAuthError('Access Denied: Unauthorized Email or Password! (' + (AUTH_LOCK_MAX - n) + ' attempts left)');
+                }
             }
         }
 
@@ -3308,24 +3457,26 @@
                 if(order.status === 'Cancelled') badgeClass = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
 
                 // Pre-filled WhatsApp response message
+                // encodeURIComponent makes the message XSS-safe; digits guard guards the wa.me href
                 const msg = encodeURIComponent(`Hello ${order.name}, this is BASIC FOOTGEAR Kayalpattinam regarding your COD Order #${order.id}.\nItems: ${order.items}\nTotal COD Amount: ${order.price}\nDelivery Address: ${order.address}.\nPlease confirm your availability for cash payment on delivery. Thank you!`);
-                const waUrl = `https://wa.me/91${order.mobile}?text=${msg}`;
+                const waMob = String(order.mobile || '').replace(/\D/g, '');
+                const waUrl = `https://wa.me/91${waMob}?text=${msg}`;
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-burgundy/30 transition-colors">
-                        <td class="p-3.5 font-mono text-gold font-bold">${order.id}</td>
+                        <td class="p-3.5 font-mono text-gold font-bold">${bfEsc(order.id)}</td>
                         <td class="p-3.5">
-                            <div class="font-semibold text-gray-200">${order.name}</div>
-                            <div class="text-[10px] text-gray-400"><i class="fa-solid fa-phone text-gold/70 mr-1"></i>${order.mobile}</div>
+                            <div class="font-semibold text-gray-200">${bfEsc(order.name)}</div>
+                            <div class="text-[10px] text-gray-400"><i class="fa-solid fa-phone text-gold/70 mr-1"></i>${bfEsc(order.mobile)}</div>
                         </td>
                         <td class="p-3.5">
-                            <div class="font-medium text-gray-200 max-w-xs truncate">${order.items}</div>
-                            <span class="text-[10px] text-gold bg-gold/10 px-1.5 py-0.5 rounded border border-gold/20">Size: ${order.size}</span>
+                            <div class="font-medium text-gray-200 max-w-xs truncate">${bfEsc(order.items)}</div>
+                            <span class="text-[10px] text-gold bg-gold/10 px-1.5 py-0.5 rounded border border-gold/20">Size: ${bfEsc(order.size)}</span>
                         </td>
-                        <td class="p-3.5 font-bold text-emerald-400">${order.price} <br><span class="text-[9px] text-gray-400 uppercase font-normal">(COD Cash)</span></td>
-                        <td class="p-3.5 max-w-xs truncate text-gray-300">${order.address}</td>
+                        <td class="p-3.5 font-bold text-emerald-400">${bfEsc(order.price)} <br><span class="text-[9px] text-gray-400 uppercase font-normal">(COD Cash)</span></td>
+                        <td class="p-3.5 max-w-xs truncate text-gray-300">${bfEsc(order.address)}</td>
                         <td class="p-3.5">
-                            <select onchange="updateOrderStatus('${order.id}', this.value)" aria-label="Update COD delivery status for order ${order.id}" class="text-[10px] font-semibold rounded-lg px-2 py-1 border ${badgeClass} bg-obsidian/80 focus:outline-none">
+                            <select onchange="updateOrderStatus('${bfEsc(order.id)}', this.value)" aria-label="Update COD delivery status for order ${bfEsc(order.id)}" class="text-[10px] font-semibold rounded-lg px-2 py-1 border ${badgeClass} bg-obsidian/80 focus:outline-none">
                                 <option value="New Order" ${order.status==='New Order'?'selected':''}>New Order (Pending)</option>
                                 <option value="Out for Delivery" ${order.status==='Out for Delivery'?'selected':''}>Out for Delivery (COD)</option>
                                 <option value="Cash Collected" ${order.status==='Cash Collected'?'selected':''}>Cash Collected & Completed</option>
@@ -3334,13 +3485,13 @@
                         </td>
                         <td class="p-3.5 text-center">
                             <div class="flex items-center justify-center gap-2">
-                                <button onclick="viewOrderDetails('${order.id}')" title="View Address &amp; Details" aria-label="View order ${order.id}" class="lux-act-btn">
+                                <button onclick="viewOrderDetails('${bfEsc(order.id)}')" title="View Address &amp; Details" aria-label="View order ${bfEsc(order.id)}" class="lux-act-btn">
                                     <i class="fa-solid fa-eye"></i>
                                 </button>
-                                <a href="${waUrl}" target="_blank" title="Send WhatsApp Delivery Update" aria-label="WhatsApp order ${order.id}" class="lux-act-btn lux-act-wa">
+                                <a href="${waUrl}" target="_blank" title="Send WhatsApp Delivery Update" aria-label="WhatsApp order ${bfEsc(order.id)}" class="lux-act-btn lux-act-wa">
                                     <i class="fa-brands fa-whatsapp text-sm"></i>
                                 </a>
-                                <button onclick="deleteOrder('${order.id}')" title="Delete / Remove this Order" aria-label="Delete order ${order.id}" class="lux-act-btn lux-act-del">
+                                <button onclick="deleteOrder('${bfEsc(order.id)}')" title="Delete / Remove this Order" aria-label="Delete order ${bfEsc(order.id)}" class="lux-act-btn lux-act-del">
                                     <i class="fa-solid fa-trash text-[11px]"></i>
                                 </button>
                             </div>
@@ -3363,7 +3514,7 @@
             // dedicated side photo file on disk.
             const chipsHtml = chipsEntries
                 ? chipsEntries.map((e, i) =>
-                    `<button type="button" onclick="setProductAngle(this)" data-src="${e.src}" data-standin="${e.standin ? 1 : 0}" class="angle-chip ${i === 0 ? 'angle-chip-active' : ''}">${angleLabelFor(p, e.angle)}</button>`
+                    `<button type="button" onclick="setProductAngle(this)" data-src="${bfEsc(e.src)}" data-standin="${e.standin ? 1 : 0}" class="angle-chip ${i === 0 ? 'angle-chip-active' : ''}">${angleLabelFor(p, e.angle)}</button>`
                 ).join('')
                 : '';
             const firstEntry = chipsEntries && chipsEntries.length ? chipsEntries[0] : null;
@@ -3372,21 +3523,21 @@
             const category = p.category === 'shoes' ? 'Shoes' : 'Slippers';
 
             return `
-                    <div data-pid="${p.id}" class="glass-card rounded-2xl overflow-hidden border border-gold/20 group hover:border-gold/50 transition-all">
+                    <div data-pid="${bfEsc(p.id)}" class="glass-card rounded-2xl overflow-hidden border border-gold/20 group hover:border-gold/50 transition-all">
                         <div class="h-40 overflow-hidden relative">
-                            <img src="${imgSrc}" loading="lazy" decoding="async" alt="${p.name}" class="prod-angle-img w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" ${firstEntry && firstEntry.standin ? `style="transform: scaleX(-1);"` : ''}>
+                            <img src="${bfEsc(imgSrc)}" loading="lazy" decoding="async" alt="${bfEsc(p.name)}" class="prod-angle-img w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" ${firstEntry && firstEntry.standin ? `style="transform: scaleX(-1);"` : ''}>
                             <span class="absolute top-3 right-3 bg-obsidian/80 text-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-gold/30">${category}</span>
                             <div class="absolute bottom-2 left-2 flex gap-1.5 flex-wrap">${chipsHtml}</div>
                         </div>
                         <div class="p-4 space-y-2">
-                            <h4 class="font-serif font-bold text-sm text-gray-100">${p.name}</h4>
+                            <h4 class="font-serif font-bold text-sm text-gray-100">${bfEsc(p.name)}</h4>
                             <div class="flex justify-between items-center text-xs">
                                 <span class="font-bold text-gold text-sm">₹${p.price.toLocaleString()}</span>
                                 <span class="text-gray-400">Stock: <strong class="${stock < 10 ? 'text-amber-400':'text-emerald-400'}">${stock} pairs</strong></span>
                             </div>
                             <div class="pt-2 border-t border-gold/10 flex justify-between items-center">
-                                <span class="text-[10px] text-gray-500">ID: ${p.id}</span>
-                                <button onclick="quickEditStock('${p.id}')" class="text-[11px] text-gold hover:underline font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i>Update Stock</button>
+                                <span class="text-[10px] text-gray-500">ID: ${bfEsc(p.id)}</span>
+                                <button onclick="quickEditStock('${bfEsc(p.id)}')" class="text-[11px] text-gold hover:underline font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i>Update Stock</button>
                             </div>
                         </div>
                     </div>
@@ -3416,21 +3567,23 @@
             container.innerHTML = '';
 
             inquiriesData.forEach(inq => {
+                // encodeURIComponent makes the message XSS-safe; digits guard guards the wa.me href
                 const encodedMsg = encodeURIComponent(`Hello ${inq.name}, thank you for reaching out to BASIC FOOTGEAR Kayalpattinam! Regarding your message: "${inq.msg}"`);
-                const waUrl = `https://wa.me/91${inq.mobile}?text=${encodedMsg}`;
+                const inqMob = String(inq.mobile || '').replace(/\D/g, '');
+                const waUrl = `https://wa.me/91${inqMob}?text=${encodedMsg}`;
 
                 container.innerHTML += `
                     <div class="glass-card-burgundy rounded-2xl p-4 border border-gold/20 space-y-3 relative">
                         <div class="flex justify-between items-start">
                             <div>
-                                <h4 class="font-bold text-sm text-gold">${inq.name}</h4>
-                                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-phone text-gold/60 mr-1"></i>${inq.mobile}</p>
+                                <h4 class="font-bold text-sm text-gold">${bfEsc(inq.name)}</h4>
+                                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-phone text-gold/60 mr-1"></i>${bfEsc(inq.mobile)}</p>
                             </div>
-                            <span class="text-[10px] text-gray-500">${inq.time}</span>
+                            <span class="text-[10px] text-gray-500">${bfEsc(inq.time)}</span>
                         </div>
-                        <p class="text-xs text-gray-300 bg-obsidian/60 p-3 rounded-xl border border-gold/10 italic">"${inq.msg}"</p>
+                        <p class="text-xs text-gray-300 bg-obsidian/60 p-3 rounded-xl border border-gold/10 italic">"${bfEsc(inq.msg)}"</p>
                         <div class="flex justify-between items-center pt-2">
-                            <span class="text-[10px] text-gold/70">${inq.email}</span>
+                            <span class="text-[10px] text-gold/70">${bfEsc(inq.email)}</span>
                             <a href="${waUrl}" target="_blank" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center space-x-1.5 transition-all">
                                 <i class="fa-brands fa-whatsapp"></i>
                                 <span>Reply on WhatsApp</span>
@@ -3460,19 +3613,19 @@
             document.getElementById('modalOrderId').innerText = `COD Order: ${order.id}`;
             document.getElementById('modalOrderContent').innerHTML = `
                 <div class="space-y-2">
-                    <p><strong>Customer Name:</strong> ${order.name}</p>
-                    <p><strong>Phone Number:</strong> ${order.mobile}</p>
-                    <p><strong>Ordered Items:</strong> ${order.items}</p>
-                    <p><strong>Footwear Size / Color:</strong> ${order.size} | ${order.color}</p>
-                    <p><strong>COD Total Amount:</strong> <span class="text-emerald-400 font-bold">${order.price}</span></p>
-                    <p><strong>Delivery Address:</strong> <span class="text-gold">${order.address}</span></p>
+                    <p><strong>Customer Name:</strong> ${bfEsc(order.name)}</p>
+                    <p><strong>Phone Number:</strong> ${bfEsc(order.mobile)}</p>
+                    <p><strong>Ordered Items:</strong> ${bfEsc(order.items)}</p>
+                    <p><strong>Footwear Size / Color:</strong> ${bfEsc(order.size)} | ${bfEsc(order.color)}</p>
+                    <p><strong>COD Total Amount:</strong> <span class="text-emerald-400 font-bold">${bfEsc(order.price)}</span></p>
+                    <p><strong>Delivery Address:</strong> <span class="text-gold">${bfEsc(order.address)}</span></p>
                     <p><strong>Notes/Payment:</strong> Cash on Delivery (COD)</p>
-                    <p><strong>Current COD Status:</strong> <span class="text-gold font-bold">${order.status}</span></p>
+                    <p><strong>Current COD Status:</strong> <span class="text-gold font-bold">${bfEsc(order.status)}</span></p>
                 </div>
             `;
 
             const msg = encodeURIComponent(`Hello ${order.name}, regarding your COD order #${order.id} from BASIC FOOTGEAR Kayalpattinam...`);
-            document.getElementById('modalWaBtn').onclick = () => window.open(`https://wa.me/91${order.mobile}?text=${msg}`, '_blank');
+            document.getElementById('modalWaBtn').onclick = () => window.open(`https://wa.me/91${String(order.mobile || '').replace(/\D/g, '')}?text=${msg}`, '_blank');
             document.getElementById('orderModal').classList.remove('hidden');
         }
 
@@ -3692,6 +3845,7 @@
             const order = ordersData.find(o => o.id === id);
             if(order) {
                 order.status = newStatus;
+                saveOrdersData();   // status changes survive refresh too
                 updateKPIs();
                 showToast(`COD ${id} status updated: ${newStatus}`);
             }
