@@ -17,16 +17,17 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies & Capacitor iOS
-        run: |
-          npm install
-          npm install @capacitor/ios
+      - name: Install Dependencies
+        run: npm install
 
-      - name: Add iOS Platform & Sync
+      - name: Initialize iOS Platform
         run: |
-          npx cap add ios
           npx cap sync ios
-          cd ios/App && pod install
+
+      - name: Install CocoaPods
+        run: |
+          cd ios/App
+          pod install
 
       - name: Build iOS Project
         run: |
