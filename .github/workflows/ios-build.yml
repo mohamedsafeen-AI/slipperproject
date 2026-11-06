@@ -20,14 +20,25 @@ jobs:
       - name: Install Dependencies & Capacitor iOS
         run: |
           npm install
-          npm install @capacitor/ios
+          npm install @capacitor/ios @capacitor/core @capacitor/cli
 
-      - name: Initialize iOS Platform, Sync & Pods
+      - name: Build Web Assets & Sync iOS
         run: |
+          npm run build --if-present
           npx cap add ios || true
-          npx cap sync ios
+          npx cap copy ios
+          npx cap update ios
 
-      - name: Build iOS Project
+      - name: Install Pods Explicitley
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -derivedDataPath build -sdk iphoneos CODE_SIGNING_ALLOWED=NO
+          pod install
+
+      - name: Build iOS Project (.xcodeproj / .xcworkspace)
+        run: |
+          cd ios/App
+          if [ -d "App.xcworkspace" ]; then
+            xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -derivedDataPath build -sdk iphoneos CODE_SIGNING_ALLOWED=NO
+          else
+            xcodebuild -project App.xcodeproj -scheme App -configuration Release -derivedDataPath build -sdk iphoneos CODE_SIGNING_ALLOWED=NO
+          fi
