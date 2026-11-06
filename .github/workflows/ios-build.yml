@@ -22,17 +22,11 @@ jobs:
           npm install
           npm install @capacitor/ios @capacitor/core @capacitor/cli
 
-      - name: Build Web Assets & Sync iOS
+      - name: Build Web Assets & Initialize iOS Platform
         run: |
           npm run build --if-present
           npx cap add ios || true
-          npx cap copy ios
-          npx cap update ios
-
-      - name: Install Pods Explicitley
-        run: |
-          cd ios/App
-          pod install
+          npx cap sync ios
 
       - name: Build iOS Project (.xcodeproj / .xcworkspace)
         run: |
