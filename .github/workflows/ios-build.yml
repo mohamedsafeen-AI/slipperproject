@@ -25,7 +25,8 @@ jobs:
       - name: Add iOS Platform & Sync
         run: |
           npx cap add ios
-          npx cap update ios
+          npx cap sync ios
+          cd ios/App && pod install
 
       - name: Build iOS Project
         run: |
