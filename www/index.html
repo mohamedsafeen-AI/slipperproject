@@ -2619,6 +2619,19 @@
                 }
                 try { history.replaceState(null, '', window.location.pathname); } catch (err) { /* file:// guard */ }
             }
+
+            // COLD-START APP LINK (Capacitor app): the packaged Android WebView
+            // loads its internal origin (https://localhost), so the URL params
+            // above never contain the tapped link — the launch URL is where it
+            // lives. Checking it HERE, after the boot navigation, guarantees
+            // the product modal wins over navigateTo('home') (no race).
+            if (window.Capacitor && Capacitor.isPluginAvailable('App')) {
+                try {
+                    Capacitor.Plugins.App.getLaunchUrl()
+                        .then(l => openDeepLinkedProduct(l && l.url))
+                        .catch(() => { /* launched from the home icon — no url */ });
+                } catch (err) { /* bridge not ready — warm-start links still work */ }
+            }
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', bootStorefront);
@@ -2659,10 +2672,11 @@
         if (window.Capacitor && Capacitor.isPluginAvailable('App')) {
             const AppPlugin = Capacitor.Plugins.App;
             try {
+                // WARM START: app already open (singleTask) — a tapped link
+                // relaunches with a new intent and fires this event. Cold-start
+                // launch links are handled inside bootStorefront (above) so
+                // they always run AFTER the initial navigation.
                 AppPlugin.addListener('appUrlOpen', data => openDeepLinkedProduct(data && data.url));
-                AppPlugin.getLaunchUrl()
-                    .then(l => openDeepLinkedProduct(l && l.url))
-                    .catch(() => { /* cold start without a launch url */ });
             } catch (err) { /* plugin bridge not ready — deep links fall back to the website */ }
         }
     </script>
