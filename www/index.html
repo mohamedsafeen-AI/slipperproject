@@ -748,8 +748,38 @@
         // tap opens the app directly on the product; on unverified ones it
         // opens the website (same handler).
         const LIVE_SITE_BASE = 'https://slipperproject.vercel.app';
+
+        // ===== CENTRAL DYNAMIC-PRODUCT RESOLVER =====
+        // Deep links, the WhatsApp message builder and the product modal ALL
+        // go through this. Lookup order: live PRODUCTS array → in-memory
+        // DYNAMIC_PRODUCTS → a FRESH localStorage read of 'bfDynamicProducts'.
+        // A product found only in storage is rehydrated back into PRODUCTS
+        // (and DYNAMIC_PRODUCTS) so the modal, cart, angle slider and grid all
+        // see the exact same object — the deep-link tap can never "miss" a
+        // product the owner actually saved on this device.
+        function findProductAnywhere(id) {
+            if (!id) return null;
+            let p = PRODUCTS.find(x => x.id === id) || null;
+            if (p) return p;
+            p = (typeof DYNAMIC_PRODUCTS !== 'undefined' ? DYNAMIC_PRODUCTS : []).find(x => x.id === id) || null;
+            if (p) return p;
+            try {
+                const stored = JSON.parse(localStorage.getItem('bfDynamicProducts') || '[]');
+                p = Array.isArray(stored) ? (stored.find(x => x.id === id) || null) : null;
+            } catch (err) { p = null; }
+            if (p) {
+                if (!PRODUCTS.some(x => x.id === p.id)) PRODUCTS.unshift(p);
+                if (typeof DYNAMIC_PRODUCTS !== 'undefined' && !DYNAMIC_PRODUCTS.some(x => x.id === p.id)) DYNAMIC_PRODUCTS.unshift(p);
+            }
+            return p;
+        }
+
         function getProductImageLink(id) {
-            const product = PRODUCTS.find(p => p.id === id);
+            // Strict shareable format — NEVER path-style, so it can never 404.
+            // The resolver (not just PRODUCTS) decides if the id is known, so
+            // every owner-added dynamic product ALWAYS gets its link injected
+            // into the WhatsApp order message.
+            const product = findProductAnywhere(id);
             if (!product) return '';
             return LIVE_SITE_BASE + '/?product=' + encodeURIComponent(id);
         }
@@ -794,6 +824,26 @@
                 showToast(wasApiFailure
                     ? 'Copy failed. Link: ' + text
                     : 'Copy not supported here. Link: ' + text);
+            }
+        }
+
+        // Customer-facing SHARE (product modal): native share sheet on Android
+        // (customer picks WhatsApp/Status/any app), WhatsApp-send fallback on
+        // plain browsers, clipboard fallback last. Uses the same strict deep
+        // link + dynamic-product resolver as the order message builder.
+        function shareProduct(id) {
+            const p = findProductAnywhere(id);
+            const link = getProductImageLink(id);
+            if (!p || !link) { showToast('Could not build a share link for this product.'); return; }
+            const msg = p.name + ' — ₹' + (p.price || 0).toLocaleString('en-IN') + ' at BASIC FOOTGEAR\nView: ' + link;
+            if (navigator.share) {
+                navigator.share({ title: p.name + ' — BASIC FOOTGEAR', text: msg, url: link })
+                    .then(() => showToast('Shared! Your friend can open the product directly.'))
+                    .catch(() => { /* user cancelled the share sheet */ });
+            } else {
+                // No Web Share API (desktop/http context): WhatsApp send screen
+                // lets the customer pick any chat, message pre-filled.
+                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank', 'noopener');
             }
         }
 
@@ -2067,7 +2117,9 @@
 
         // Product Modal Logic
         function openProductModal(id) {
-            const product = PRODUCTS.find(p => p.id === id);
+            // Central resolver: dynamic products rehydrate from
+            // 'bfDynamicProducts' storage if the live array missed them
+            const product = findProductAnywhere(id);
             if (!product) return;
 
             // Reset size choice on every open; color keeps its pre-selected default
@@ -2136,6 +2188,9 @@
 
                         <button onclick="addSelectionToCart('${bfEsc(product.id)}')" class="gold-btn w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest">
                             Add to Cart & Order
+                        </button>
+                        <button onclick="shareProduct('${bfEsc(product.id)}')" class="w-full py-3 mt-2 rounded-xl font-bold text-xs uppercase tracking-widest border border-gold text-gold hover:bg-gold hover:text-obsidian transition flex items-center justify-center gap-2">
+                            <i class="fa-brands fa-whatsapp"></i> Share This Product
                         </button>
                     </div>
                 </div>
@@ -2655,7 +2710,7 @@
                 || new URLSearchParams(window.location.search).get('id')
                 || decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
             if (deepId) {
-                const p = PRODUCTS.find(x => x.id === deepId);
+                const p = findProductAnywhere(deepId);
                 if (p) {
                     navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
                     setTimeout(() => openProductModal(deepId), 350);
@@ -2712,7 +2767,7 @@
                         || u.searchParams.get('id');
                 }
                 if (!pid) return;
-                const p = PRODUCTS.find(x => x.id === pid);
+                const p = findProductAnywhere(pid);
                 if (!p) {
                     // The product catalog beyond the built-ins lives in THIS
                     // device's localStorage — a dynamic product added on the
