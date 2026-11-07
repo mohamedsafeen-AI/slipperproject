@@ -735,18 +735,23 @@
         // Every order line carries a clickable link that OPENS THE APP ON THE
         // EXACT MODEL the customer ordered (the product modal with its 3-angle
         // images, size options and full details), so the boutique owner can
-        // identify it in one tap. The link is the LIVE VERCEL URL with the
+        // identify it in one tap. The link is the LIVE VERCEL ROOT page with a
         // product query parameter:
         //   https://slipperproject.vercel.app/?product=<id>
-        // Because it is a plain https URL, WhatsApp renders it as a tappable
-        // blue hyperlink. The Android app registers this domain with
-        // android:autoVerify="true" (AndroidManifest.xml) + assetlinks.json,
-        // so on verified devices the tap opens the app directly on the
-        // product; on unverified ones it opens the website (same handler).
+        // (Root + query, NOT a /product path — the site is a single-page app,
+        // so path-style links would 404 on static hosting. The SPA's boot
+        // handler reads ?product= / ?openProduct= / #<id> and opens the
+        // product modal automatically.) Because it is a plain https URL,
+        // WhatsApp renders it as a tappable blue hyperlink. The Android app
+        // registers this domain with android:autoVerify="true"
+        // (AndroidManifest.xml) + assetlinks.json, so on verified devices the
+        // tap opens the app directly on the product; on unverified ones it
+        // opens the website (same handler).
+        const LIVE_SITE_BASE = 'https://slipperproject.vercel.app';
         function getProductImageLink(id) {
             const product = PRODUCTS.find(p => p.id === id);
             if (!product) return '';
-            return 'https://slipperproject.vercel.app/?product=' + encodeURIComponent(id);
+            return LIVE_SITE_BASE + '/?product=' + encodeURIComponent(id);
         }
 
         // ---------- Everyday Style Generator: curated 10-piece MEN'S FOOTWEAR lineup ----------
@@ -2537,7 +2542,15 @@
                 const imgSrc = item.pickedImage || item.image || '';
                 if (imgSrc && !/^data:/i.test(imgSrc)) {
                     try {
-                        const absImg = new URL(imgSrc, window.location.href).href;
+                        // Absolute http(s) image URLs pass through untouched;
+                        // RELATIVE asset paths ("assets/menslipper1.webp") are
+                        // resolved against the LIVE Vercel domain — never
+                        // against the WebView origin (https://localhost in the
+                        // packaged app), which produces dead links for whoever
+                        // receives the WhatsApp message.
+                        const absImg = /^https?:\/\//i.test(imgSrc)
+                            ? imgSrc
+                            : LIVE_SITE_BASE + '/' + imgSrc.replace(/^\/+/, '');
                         text += `Image Reference: \n${absImg}\n`;
                     } catch (err) { /* relative path unresolvable — Product View link still identifies the model */ }
                 }
@@ -2587,10 +2600,17 @@
             updateCartUI();
             navigateTo('home');
 
-            // Deep link support (?product=<id>): opens the page highlighting the
-            // EXACT model a customer ordered — its category view, then the product
-            // modal with the 3-angle images, size options and full details.
-            const deepId = new URLSearchParams(window.location.search).get('product');
+            // Deep link support — opens the page highlighting the EXACT model a
+            // customer ordered (its category view, then the product modal with
+            // the 3-angle images, size options and full details). Accepted URL
+            // shapes (all resolve to the same handler):
+            //   ?product=<id>      → WhatsApp "Product View" links (generated)
+            //   ?openProduct=<id>  → alias, future-proofing
+            //   #<id>              → hash format
+            const deepId = new URLSearchParams(window.location.search).get('product')
+                || new URLSearchParams(window.location.search).get('openProduct')
+                || new URLSearchParams(window.location.search).get('id')
+                || decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
             if (deepId) {
                 const p = PRODUCTS.find(x => x.id === deepId);
                 if (p) {
@@ -2621,7 +2641,13 @@
                 if (u.protocol === 'basicfootgear:') {
                     pid = u.searchParams.get('id');            // custom scheme: ...://product?id=<id>
                 } else if (u.protocol === 'https:' || u.protocol === 'http:') {
-                    pid = u.searchParams.get('product');       // App Link: .../?product=<id>
+                    // App Link — every accepted shape:
+                    //   /?product=<id>     (generated WhatsApp links)
+                    //   /?openProduct=<id> (alias)
+                    //   /product?id=<id>   (old messages — vercel.json rewrite serves the SPA)
+                    pid = u.searchParams.get('product')
+                        || u.searchParams.get('openProduct')
+                        || u.searchParams.get('id');
                 }
                 if (!pid) return;
                 const p = PRODUCTS.find(x => x.id === pid);
