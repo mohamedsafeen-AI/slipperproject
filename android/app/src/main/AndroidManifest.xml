@@ -18,6 +18,27 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Custom scheme deep link: basicfootgear://product?id=<id> —
+                 fallback for older WhatsApp order messages sent before the
+                 App Links setup. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="basicfootgear" android:host="product" />
+            </intent-filter>
+            <!-- HTTPS App Link (autoVerify): https://slipperproject.vercel.app/?product=<id>
+                 Android verifies the domain's assetlinks.json and, once verified,
+                 opens these Vercel links DIRECTLY in the app — no chooser. This is
+                 what makes WhatsApp "Product View" links tappable blue links that
+                 land on the exact product view. Requires the site to publish:
+                 https://slipperproject.vercel.app/.well-known/assetlinks.json -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="slipperproject.vercel.app" />
+            </intent-filter>
         </activity>
 
         <provider
