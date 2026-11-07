@@ -754,6 +754,49 @@
             return LIVE_SITE_BASE + '/?product=' + encodeURIComponent(id);
         }
 
+        // Copy a product's shareable deep link to the clipboard (Admin Portal
+        // "Copy Link" button). The link uses the root-query SPA format
+        // (LIVE_SITE_BASE/?product=<id>) so it can never 404: Vercel serves
+        // index.html at root and the deep-link router picks the id up.
+        function copyProductLink(id) {
+            const link = getProductImageLink(id);
+            if (!link) { showToast('Could not build a link for this product.'); return; }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link).then(
+                    () => showToast('Product link copied — paste it in WhatsApp, status or ads!'),
+                    () => copyProductLinkFallback(link, true)
+                );
+            } else {
+                copyProductLinkFallback(link, false);
+            }
+        }
+
+        // Clipboard fallback for WebViews / non-secure contexts where the
+        // async Clipboard API is unavailable: hidden textarea +
+        // document.execCommand('copy'). If even that fails, show the link in
+        // a toast so the owner can long-press-copy it manually.
+        function copyProductLinkFallback(text, wasApiFailure) {
+            let ok = false;
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0;';
+                document.body.appendChild(ta);
+                ta.select();
+                ta.setSelectionRange(0, text.length);
+                ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+            } catch (err) { ok = false; }
+            if (ok) {
+                showToast('Product link copied — paste it in WhatsApp, status or ads!');
+            } else {
+                showToast(wasApiFailure
+                    ? 'Copy failed. Link: ' + text
+                    : 'Copy not supported here. Link: ' + text);
+            }
+        }
+
         // ---------- Everyday Style Generator: curated 10-piece MEN'S FOOTWEAR lineup ----------
         // Adds 7 additional slipper/sandal entries (with the 3 originals = 10 total) using
         // varied names, realistic ₹ prices, sizes 6–11, colors and reliable placeholder images.
@@ -2616,6 +2659,12 @@
                 if (p) {
                     navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
                     setTimeout(() => openProductModal(deepId), 350);
+                } else {
+                    // The catalog beyond the built-ins lives in THIS device's
+                    // localStorage — a dynamic product added on the owner's
+                    // phone cannot resolve on a visitor's fresh device (no
+                    // backend yet). Say so instead of failing silently.
+                    showToast('Product link opened, but this item is not on this device yet.');
                 }
                 try { history.replaceState(null, '', window.location.pathname); } catch (err) { /* file:// guard */ }
             }
@@ -2664,7 +2713,14 @@
                 }
                 if (!pid) return;
                 const p = PRODUCTS.find(x => x.id === pid);
-                if (!p) return;                                 // unknown/renamed id — ignore quietly
+                if (!p) {
+                    // The product catalog beyond the built-ins lives in THIS
+                    // device's localStorage — a dynamic product added on the
+                    // owner's phone cannot resolve on a visitor's fresh device
+                    // (no backend yet). Say so instead of failing silently.
+                    showToast('Product link opened, but this item is not on this device yet.');
+                    return;
+                }
                 navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
                 setTimeout(() => openProductModal(pid), 350);
             } catch (err) { /* malformed url — ignore */ }
@@ -3600,9 +3656,12 @@
                                 <span class="font-bold text-gold text-sm">₹${p.price.toLocaleString()}</span>
                                 <span class="text-gray-400">Stock: <strong class="${stock < 10 ? 'text-amber-400':'text-emerald-400'}">${stock} pairs</strong></span>
                             </div>
-                            <div class="pt-2 border-t border-gold/10 flex justify-between items-center">
+                            <div class="pt-2 border-t border-gold/10 flex flex-wrap justify-between items-center gap-x-2 gap-y-1">
                                 <span class="text-[10px] text-gray-500">ID: ${bfEsc(p.id)}</span>
-                                <button onclick="quickEditStock('${bfEsc(p.id)}')" class="text-[11px] text-gold hover:underline font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i>Update Stock</button>
+                                <span class="flex gap-3">
+                                    <button onclick="copyProductLink('${bfEsc(p.id)}')" title="Copy shareable product deep link" class="text-[11px] text-gold hover:underline font-semibold"><i class="fa-solid fa-link mr-1"></i>Copy Link</button>
+                                    <button onclick="quickEditStock('${bfEsc(p.id)}')" class="text-[11px] text-gold hover:underline font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i>Update Stock</button>
+                                </span>
                             </div>
                         </div>
                     </div>
