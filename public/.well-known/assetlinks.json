@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.basicfootgear.app",
+    "sha256_cert_fingerprints": [
+      "20:B6:A2:3C:64:8F:EF:67:FE:63:EE:91:60:AF:F4:9E:ED:F6:82:82:22:54:37:8F:0E:CB:F4:A0:02:51:EB:03"
+    ]
+  }
+}]

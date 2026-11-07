@@ -732,30 +732,21 @@
 
         // ============================================================
         // PRODUCT -> WHATSAPP DEEP LINK
-        // Every order line carries a clickable link that OPENS THE PAGE HIGHLIGHTING
-        // THE EXACT MODEL the customer ordered (the product modal with its 3-angle
-        // images, size options and full details), so the boutique owner can identify
-        // it in one tap. Resolution order:
-        //   1. SITE_BASE_URL set  →  <configured domain>/?product=<id>    (deployed site)
-        //   2. live http/https    →  origin + pathname + ?product=<id>    (Vercel etc.)
-        //   3. local preview      →  the page's own URL + ?product=<id> — still fully
-        //      clickable and opens the local page on the owner's machine. WhatsApp
-        //      only auto-links http(s) URLs, so set SITE_BASE_URL (or deploy) for
-        //      phone-clickable https links.
-        // Bare asset paths ("assestes/menslipper3.png") are NEVER sent — WhatsApp
-        // does not hyperlink text without a protocol.
-        const SITE_BASE_URL = '';
-
+        // Every order line carries a clickable link that OPENS THE APP ON THE
+        // EXACT MODEL the customer ordered (the product modal with its 3-angle
+        // images, size options and full details), so the boutique owner can
+        // identify it in one tap. The link is the LIVE VERCEL URL with the
+        // product query parameter:
+        //   https://slipperproject.vercel.app/?product=<id>
+        // Because it is a plain https URL, WhatsApp renders it as a tappable
+        // blue hyperlink. The Android app registers this domain with
+        // android:autoVerify="true" (AndroidManifest.xml) + assetlinks.json,
+        // so on verified devices the tap opens the app directly on the
+        // product; on unverified ones it opens the website (same handler).
         function getProductImageLink(id) {
             const product = PRODUCTS.find(p => p.id === id);
             if (!product) return '';
-            const qs = '?product=' + encodeURIComponent(id);
-            if (SITE_BASE_URL) return SITE_BASE_URL.replace(/\/+$/, '') + '/' + qs;   // owner-configured live domain
-            const loc = window.location;
-            const isLiveSite = /^https?:$/.test(loc.protocol) &&
-                !/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(loc.hostname);
-            if (isLiveSite) return loc.origin + (loc.pathname || '/') + qs;           // deployed → https deep link
-            return loc.href.split('#')[0] + qs;                                       // local preview deep link
+            return 'https://slipperproject.vercel.app/?product=' + encodeURIComponent(id);
         }
 
         // ---------- Everyday Style Generator: curated 10-piece MEN'S FOOTWEAR lineup ----------
@@ -2613,6 +2604,40 @@
             document.addEventListener('DOMContentLoaded', bootStorefront);
         } else {
             bootStorefront();
+        }
+
+        // ===== APP LINKS HANDLER (Capacitor App plugin) =====
+        // When the Android app is opened by tapping a WhatsApp "Product View"
+        // link — https://slipperproject.vercel.app/?product=<id> (App Link) or
+        // the legacy basicfootgear://product?id=<id> custom scheme — this
+        // extracts the product id and opens the product modal directly.
+        // appUrlOpen covers warm starts (app already open, singleTask relaunch);
+        // getLaunchUrl() covers cold starts (app launched BY the link).
+        function openDeepLinkedProduct(rawUrl) {
+            try {
+                if (!rawUrl) return;
+                const u = new URL(rawUrl);
+                let pid = null;
+                if (u.protocol === 'basicfootgear:') {
+                    pid = u.searchParams.get('id');            // custom scheme: ...://product?id=<id>
+                } else if (u.protocol === 'https:' || u.protocol === 'http:') {
+                    pid = u.searchParams.get('product');       // App Link: .../?product=<id>
+                }
+                if (!pid) return;
+                const p = PRODUCTS.find(x => x.id === pid);
+                if (!p) return;                                 // unknown/renamed id — ignore quietly
+                navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
+                setTimeout(() => openProductModal(pid), 350);
+            } catch (err) { /* malformed url — ignore */ }
+        }
+        if (window.Capacitor && Capacitor.isPluginAvailable('App')) {
+            const AppPlugin = Capacitor.Plugins.App;
+            try {
+                AppPlugin.addListener('appUrlOpen', data => openDeepLinkedProduct(data && data.url));
+                AppPlugin.getLaunchUrl()
+                    .then(l => openDeepLinkedProduct(l && l.url))
+                    .catch(() => { /* cold start without a launch url */ });
+            } catch (err) { /* plugin bridge not ready — deep links fall back to the website */ }
         }
     </script>
 
