@@ -784,6 +784,158 @@
             return LIVE_SITE_BASE + '/?product=' + encodeURIComponent(id);
         }
 
+        // ===== GOOGLE APPS SCRIPT BACKEND LAYER =====
+        // Paste your deployed Apps Script Web App /exec URL here. Until a URL
+        // is set the app transparently falls back to localStorage-only mode —
+        // every feature keeps working, dynamic products just stay on this
+        // device. Once set, products sync across ALL devices.
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiAPIXxOcUx2SVy_IaTFevSY1uFbcub7IxpaFQi5JONgAG4KC64T_8MfkbKGD_tJo3/exec';
+
+        function backendEnabled() {
+            return typeof APPS_SCRIPT_URL === 'string' && APPS_SCRIPT_URL.indexOf('https://') === 0;
+        }
+
+        // fetch with an 8s timeout so a dead backend can never freeze the UI
+        function backendFetch(path, options) {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 8000);
+            return fetch(APPS_SCRIPT_URL + path, Object.assign({ signal: ctrl.signal }, options || {}))
+                .finally(() => clearTimeout(timer));
+        }
+
+        // Normalize a backend record {id,title,category,price,image,description,stock}
+        // into the FULL storefront shape the grid/modal/cart expect (3-angle
+        // images with stand-ins, sizes, tag — identical to handleAddProduct's
+        // storefrontProduct), so backend products render exactly like
+        // owner-added ones.
+        function backendToStorefront(p) {
+            const cat = String(p.category || '').toLowerCase() === 'shoes' ? 'shoes' : 'slippers';
+            const img = p.image || '';
+            return {
+                id: p.id,
+                name: p.title || p.name || 'New Product',
+                category: cat,
+                price: parseInt(p.price) || 0,
+                rating: 4.8,
+                reviews: 0,
+                tag: 'New',
+                image: img,
+                images: cat === 'shoes'
+                    ? { top: img || { standin: 'mirror' }, left: img || { standin: 'detail' }, back: img || { standin: 'closeup' } }
+                    : { top: img || { standin: 'closeup' }, left: { standin: 'mirror' }, back: { standin: 'detail' } },
+                description: p.description || 'Handpicked by the boutique owner — fresh addition to the collection.',
+                sizes: [6, 7, 8, 9, 10, 11],
+                stock: p.stock
+            };
+        }
+
+        // Insert a backend product into the live catalog + persist the cache
+        function mergeBackendProduct(p) {
+            if (!p || !p.id) return null;
+            const existing = PRODUCTS.find(x => x.id === p.id);
+            if (existing) return existing;
+            const sp = backendToStorefront(p);
+            PRODUCTS.unshift(sp);
+            if (typeof DYNAMIC_PRODUCTS !== 'undefined' && !DYNAMIC_PRODUCTS.some(x => x.id === sp.id)) DYNAMIC_PRODUCTS.unshift(sp);
+            try {
+                localStorage.setItem('bfDynamicProducts', JSON.stringify(DYNAMIC_PRODUCTS || [sp]));
+            } catch (err) { /* quota — product stays live in memory */ }
+            return sp;
+        }
+
+        // GET product list (startup): merge into the catalog and refresh the
+        // open view. The localStorage cache renders instantly; this only ADDS.
+        function fetchProductsFromBackend() {
+            if (!backendEnabled()) return Promise.resolve(false);
+            return backendFetch('?action=products')
+                .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+                .then(data => {
+                    const list = Array.isArray(data) ? data : ((data && data.products) || []);
+                    let added = 0;
+                    list.forEach(p => { if (mergeBackendProduct(p)) added++; });
+                    if (added && ['home', 'slippers', 'shoes', 'new', 'all'].includes(currentPage)) navigateTo(currentPage);
+                    return true;
+                })
+                .catch(() => false);   // offline/dead backend — cached products already rendered
+        }
+
+        // GET a single product — the deep-link resolver's backend step
+        function fetchProductById(id) {
+            if (!backendEnabled()) return Promise.resolve(null);
+            return backendFetch('?action=product&id=' + encodeURIComponent(id))
+                .then(r => r.ok ? r.json() : null)
+                .then(p => (p && p.id ? p : null))
+                .catch(() => null);
+        }
+
+        // POST a new product. A text/plain body avoids the CORS preflight
+        // which Apps Script web apps never answer. Fire-and-forget: the
+        // product is ALREADY live in the storefront — the POST syncs it to
+        // every other device.
+        function postProductToBackend(sp) {
+            if (!backendEnabled()) return Promise.resolve(false);
+            const payload = {
+                type: 'product',
+                id: sp.id,
+                title: sp.name,
+                category: sp.category,
+                price: sp.price,
+                image: typeof sp.image === 'string' ? sp.image : '',
+                description: sp.description || '',
+                stock: sp.stock != null ? sp.stock : ''
+            };
+            return backendFetch('', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+                .then(r => {
+                    if (r.ok) showToast('Product synced to cloud — its link opens on every device now!');
+                    return r.ok;
+                })
+                .catch(() => {
+                    showToast('Cloud sync failed — product stays live on this device.');
+                    return false;
+                });
+        }
+
+        // Order cloud sync: every COD checkout is POSTed to the backend
+        // 'Orders' sheet (type:'order' routes it there). Silent on success —
+        // the checkout already shows its own toast; failures are console-logged
+        // and the order remains safely saved in local dashboard storage.
+        function postOrderToBackend(order) {
+            if (!backendEnabled()) return Promise.resolve(false);
+            const payload = {
+                type: 'order',
+                id: order.id,
+                name: order.name,
+                mobile: order.mobile,
+                items: order.items,
+                size: order.size,
+                color: order.color,
+                price: order.price,
+                address: order.address,
+                status: order.status,
+                source: order.source
+            };
+            return backendFetch('', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+                .then(r => { if (r.ok) console.log('Order ' + order.id + ' synced to backend.'); return r.ok; })
+                .catch(() => { console.warn('Order ' + order.id + ' cloud sync failed — kept in local storage.'); return false; });
+        }
+
+        // ASYNC deep-link resolution: instant local lookups first, then the
+        // backend. This is what makes a WhatsApp link resolve on ANY device —
+        // no more 'not on this device' when the backend knows the product.
+        function resolveProductWithBackend(id) {
+            const local = findProductAnywhere(id);
+            if (local) return Promise.resolve(local);
+            return fetchProductById(id).then(p => p ? mergeBackendProduct(p) : null);
+        }
+
         // Copy a product's shareable deep link to the clipboard (Admin Portal
         // "Copy Link" button). The link uses the root-query SPA format
         // (LIVE_SITE_BASE/?product=<id>) so it can never 404: Vercel serves
@@ -2618,6 +2770,9 @@
             saveOrdersData();
             renderOrdersTable(ordersData);
             updateKPIs();
+            // Cloud sync: log the order into the backend 'Orders' sheet so the
+            // dashboard survives device changes.
+            postOrderToBackend(newOrder);
             showToast(`Order ${orderId} registered in Admin Dashboard — opening WhatsApp…`);
 
             // ===== WhatsApp message with full customer + order details =====
@@ -2710,17 +2865,15 @@
                 || new URLSearchParams(window.location.search).get('id')
                 || decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
             if (deepId) {
-                const p = findProductAnywhere(deepId);
-                if (p) {
-                    navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
-                    setTimeout(() => openProductModal(deepId), 350);
-                } else {
-                    // The catalog beyond the built-ins lives in THIS device's
-                    // localStorage — a dynamic product added on the owner's
-                    // phone cannot resolve on a visitor's fresh device (no
-                    // backend yet). Say so instead of failing silently.
-                    showToast('Product link opened, but this item is not on this device yet.');
-                }
+                resolveProductWithBackend(deepId).then(p => {
+                    if (p) {
+                        navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
+                        setTimeout(() => openProductModal(deepId), 350);
+                    } else {
+                        // Unknown EVERYWHERE — local storage AND the backend
+                        showToast('Product link opened, but this item is not available yet.');
+                    }
+                });
                 try { history.replaceState(null, '', window.location.pathname); } catch (err) { /* file:// guard */ }
             }
 
@@ -2736,6 +2889,11 @@
                         .catch(() => { /* launched from the home icon — no url */ });
                 } catch (err) { /* bridge not ready — warm-start links still work */ }
             }
+
+            // STARTUP PRODUCT SYNC (web AND Android): pull the owner's catalog
+            // from the Google Apps Script backend and merge it into the grid —
+            // while the localStorage cache keeps the first paint instant.
+            fetchProductsFromBackend();
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', bootStorefront);
@@ -2767,17 +2925,15 @@
                         || u.searchParams.get('id');
                 }
                 if (!pid) return;
-                const p = findProductAnywhere(pid);
-                if (!p) {
-                    // The product catalog beyond the built-ins lives in THIS
-                    // device's localStorage — a dynamic product added on the
-                    // owner's phone cannot resolve on a visitor's fresh device
-                    // (no backend yet). Say so instead of failing silently.
-                    showToast('Product link opened, but this item is not on this device yet.');
-                    return;
-                }
-                navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
-                setTimeout(() => openProductModal(pid), 350);
+                resolveProductWithBackend(pid).then(p => {
+                    if (!p) {
+                        // Unknown EVERYWHERE — local storage AND the backend
+                        showToast('Product link opened, but this item is not available yet.');
+                        return;
+                    }
+                    navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
+                    setTimeout(() => openProductModal(pid), 350);
+                });
             } catch (err) { /* malformed url — ignore */ }
         }
         if (window.Capacitor && Capacitor.isPluginAvailable('App')) {
@@ -4017,6 +4173,10 @@
             renderProductsGrid();
             closeModal('addProductModal');
             resetAdminAnglePreviews();
+            // Cloud sync: POST the product to the Apps Script backend so its
+            // deep link resolves on EVERY device. Fire-and-forget — the
+            // storefront already shows it.
+            postProductToBackend(storefrontProduct);
             showToast(`New footwear added to New Arrivals & ${storefrontProduct.category === 'shoes' ? 'Shoes' : 'Slippers'} collection!`);
         }
 
