@@ -789,7 +789,7 @@
         // is set the app transparently falls back to localStorage-only mode —
         // every feature keeps working, dynamic products just stay on this
         // device. Once set, products sync across ALL devices.
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiAPIXxOcUx2SVy_IaTFevSY1uFbcub7IxpaFQi5JONgAG4KC64T_8MfkbKGD_tJo3/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztP81fkIcf7a8MN0WveuNmXUGCiNzRtJVqlJqnMAtcYqmN76s9mbQIHAy4lJJzZml7/exec';
 
         function backendEnabled() {
             return typeof APPS_SCRIPT_URL === 'string' && APPS_SCRIPT_URL.indexOf('https://') === 0;
@@ -905,7 +905,7 @@
         // and the order remains safely saved in local dashboard storage.
         function postOrderToBackend(order) {
             if (!backendEnabled()) return Promise.resolve(false);
-            const payload = {
+            const payload = JSON.stringify({
                 type: 'order',
                 id: order.id,
                 name: order.name,
@@ -917,14 +917,29 @@
                 address: order.address,
                 status: order.status,
                 source: order.source
-            };
-            return backendFetch('', {
+            });
+            const send = () => backendFetch('', {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
+                body: payload
             })
-                .then(r => { if (r.ok) console.log('Order ' + order.id + ' synced to backend.'); return r.ok; })
-                .catch(() => { console.warn('Order ' + order.id + ' cloud sync failed — kept in local storage.'); return false; });
+                .then(r => r.text().then(t => { return { ok: r.ok, body: t }; }))
+                .then(res => {
+                    if (res.ok) { console.log('Order ' + order.id + ' synced to backend — admin push broadcast fired.'); return true; }
+                    console.warn('Order ' + order.id + ' rejected by backend:', res.body.slice(0, 120));
+                    return false;
+                })
+                .catch(err => {
+                    console.warn('Order ' + order.id + ' cloud sync failed — kept in local storage. (' + ((err && err.message) || err) + ')');
+                    return false;
+                });
+            return send().then(ok => {
+                if (ok) return ok;
+                // ONE delayed retry (6s) — the order is already safe in local
+                // dashboard storage, this only rescues a dropped checkout
+                // connection (e.g. offline checkout) before WhatsApp opens.
+                return new Promise(resolve => setTimeout(() => { send().then(resolve); }, 6000));
+            });
         }
 
         // ASYNC deep-link resolution: instant local lookups first, then the
@@ -943,18 +958,33 @@
         // product (same deep-link pipeline as WhatsApp links).
         function postTokenToBackend(token, platform) {
             if (!backendEnabled() || !token) return Promise.resolve(false);
-            return backendFetch('', {
+            const payload = JSON.stringify({
+                type: 'token',
+                token: token,
+                platform: platform || 'android',
+                updated: new Date().toISOString()
+            });
+            const send = () => backendFetch('', {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({
-                    type: 'token',
-                    token: token,
-                    platform: platform || 'android',
-                    updated: new Date().toISOString()
-                })
+                body: payload
             })
-                .then(r => { if (r.ok) console.log('FCM token synced to backend.'); return r.ok; })
-                .catch(() => false);
+                .then(r => r.text().then(t => { return { ok: r.ok, body: t }; }))
+                .then(res => {
+                    if (res.ok) { console.log('FCM token synced to backend (' + res.body.slice(0, 60) + ')'); return true; }
+                    console.warn('Token save rejected by backend:', res.body.slice(0, 120));
+                    return false;
+                })
+                .catch(err => {
+                    console.warn('Token save request failed:', (err && err.message) || err);
+                    return false;
+                });
+            return send().then(ok => {
+                if (ok) return ok;
+                // ONE delayed retry (5s) — covers a dropped connection at
+                // app startup (registration fired before the network was up).
+                return new Promise(resolve => setTimeout(() => { send().then(resolve); }, 5000));
+            });
         }
 
         function initPushNotifications() {

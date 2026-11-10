@@ -166,11 +166,61 @@ function upsertToken_(sheet, token, timestamp) {
  * ============================================================
  */
 
-/** One-time setup helper: run from the editor with the service-account JSON. */
+/**
+ * One-time setup helper: run from the editor with the service-account JSON.
+ * Bulletproof version: full validation, 3-attempt transient retry on the
+ * properties write, read-back verification and REAL error messages
+ * (Apps Script hides everything as "An unknown error has occurred").
+ */
 function setFcmServiceAccount(json) {
-  var parsed = JSON.parse(json);   // validates the JSON
-  PropertiesService.getScriptProperties().setProperty('FCM_SA_JSON', json);
-  return 'Saved service account for project: ' + parsed.project_id;
+  var parsed;
+  try {
+    parsed = JSON.parse(json);
+  } catch (parseErr) {
+    throw new Error('Service-account JSON could not be parsed (' + (parseErr && parseErr.message || parseErr) +
+      '). Make sure the WHOLE file content was copied from { to } with no truncation.');
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Service-account JSON is not an object — copy the whole Firebase file.');
+  }
+  var problems = [];
+  if (!parsed.private_key || String(parsed.private_key).indexOf('BEGIN PRIVATE KEY') === -1) {
+    problems.push('private_key missing or not a PEM key');
+  }
+  if (!parsed.client_email || String(parsed.client_email).indexOf('@') < 0) {
+    problems.push('client_email missing');
+  }
+  if (!parsed.project_id) problems.push('project_id missing');
+  if (problems.length) {
+    throw new Error('Service-account JSON incomplete: ' + problems.join('; '));
+  }
+
+  // Transient Google infra hiccups ("unknown error, try again later") are
+  // common on the first write — retry up to 3 times with a small backoff.
+  var lastErr = null;
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      PropertiesService.getScriptProperties().setProperty('FCM_SA_JSON', json);
+      lastErr = null;
+      break;
+    } catch (propErr) {
+      lastErr = propErr;
+      Utilities.sleep(600 * (attempt + 1));
+    }
+  }
+  if (lastErr) {
+    throw new Error('Script Properties write failed after 3 attempts — wait a minute and run again. (' +
+      (lastErr && lastErr.message || lastErr) + ')');
+  }
+
+  // Read back: prove the value REALLY persisted (verifies, not just "maybe").
+  var check = '';
+  try { check = PropertiesService.getScriptProperties().getProperty('FCM_SA_JSON') || ''; } catch (e) { check = ''; }
+  if (!check) {
+    throw new Error('FCM_SA_JSON read-back empty — Google Properties may still be caching; wait a minute and run again.');
+  }
+  return 'CONFIGURED OK — service account saved for project "' + parsed.project_id +
+    '" (' + parsed.client_email + '). Scripts Properties now hold the key.';
 }
 
 /** OAuth2 JWT-bearer token exchange against the service account (self-caching). */
@@ -413,3 +463,28 @@ function doPost(e) {
  *       Firebase project. Rotate immediately if it leaks.
  * ============================================================
  */
+
+/**
+ * Diagnostic — run from the editor at ANY time to check the saved FCM setup
+ * without hitting Google APIs: confirms properties really hold the config.
+ */
+function getFcmStatus() {
+  var out;
+  try {
+    var raw = PropertiesService.getScriptProperties().getProperty('FCM_SA_JSON') || '';
+    if (!raw) {
+      out = 'STATUS: NOT CONFIGURED — FCM_SA_JSON empty. Add initFcmServiceAccount() locally (private) and run it once.';
+    } else {
+      var p = JSON.parse(raw);
+      var pk = String(p.private_key || '');
+      var keyOk = pk.indexOf('-----BEGIN') === 0 && pk.indexOf('PRIVATE KEY-----') > 0;
+      out = 'STATUS: CONFIGURED — project "' + p.project_id + '", account "' + p.client_email +
+        '", PEM key: ' + (keyOk ? 'PRESENT' : 'MISSING/WRONG — re-run the local init with a fresh JSON.') +
+        ' (push sending tests: testPush() / testOrderPush())';
+    }
+  } catch (err) {
+    out = 'STATUS ERROR: ' + (err && err.message || err) + ' — re-run the local init.';
+  }
+  Logger.log(out);
+  return out;
+}
