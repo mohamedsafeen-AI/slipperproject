@@ -936,6 +936,70 @@
             return fetchProductById(id).then(p => p ? mergeBackendProduct(p) : null);
         }
 
+        // ===== PUSH NOTIFICATIONS (FCM via @capacitor/push-notifications) =====
+        // Android app only. Flow: Android 13 permission → FCM register →
+        // token uploaded to the backend 'Tokens' sheet → incoming pushes show
+        // a toast → TAPPING a push that carries data.product opens that exact
+        // product (same deep-link pipeline as WhatsApp links).
+        function postTokenToBackend(token, platform) {
+            if (!backendEnabled() || !token) return Promise.resolve(false);
+            return backendFetch('', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    type: 'token',
+                    token: token,
+                    platform: platform || 'android',
+                    updated: new Date().toISOString()
+                })
+            })
+                .then(r => { if (r.ok) console.log('FCM token synced to backend.'); return r.ok; })
+                .catch(() => false);
+        }
+
+        function initPushNotifications() {
+            if (!(window.Capacitor && Capacitor.isPluginAvailable('PushNotifications'))) return;
+            const PushPlugin = Capacitor.Plugins.PushNotifications;
+            try {
+                PushPlugin.requestPermissions().then(result => {
+                    const granted = result && (result.receive === 'granted'
+                        || result.notifications === 'granted'
+                        || result.granted === true);
+                    if (granted) PushPlugin.register();
+                }).catch(() => { /* permission denied — push stays off, app unaffected */ });
+
+                // FCM token (refreshes occasionally — re-uploaded on every boot)
+                PushPlugin.addListener('registration', value => {
+                    if (value && value.value) postTokenToBackend(value.value, 'android');
+                });
+                PushPlugin.addListener('registrationError', err => {
+                    console.warn('FCM registration failed:', err);
+                });
+
+                // App is OPEN when the push arrives → in-app toast
+                PushPlugin.addListener('pushNotificationReceived', notification => {
+                    if (notification) {
+                        showToast(((notification.title || 'New update') + (notification.body ? ' — ' + notification.body : '')).slice(0, 90));
+                    }
+                });
+
+                // User TAPPED the notification (app cold or warm start)
+                PushPlugin.addListener('pushNotificationActionPerformed', action => {
+                    const data = action && action.notification && action.notification.data;
+                    const pid = data && (data.product || data.productId);
+                    if (pid) {
+                        // same resolver pipeline as WhatsApp links (local → backend)
+                        resolveProductWithBackend(pid).then(p => {
+                            if (p) {
+                                navigateTo(p.category === 'shoes' ? 'shoes' : 'slippers');
+                                setTimeout(() => openProductModal(pid), 350);
+                            }
+                        });
+                    }
+                });
+            } catch (err) { /* plugin bridge not ready — push stays off */ }
+        }
+
         // Copy a product's shareable deep link to the clipboard (Admin Portal
         // "Copy Link" button). The link uses the root-query SPA format
         // (LIVE_SITE_BASE/?product=<id>) so it can never 404: Vercel serves
@@ -2894,6 +2958,10 @@
             // from the Google Apps Script backend and merge it into the grid —
             // while the localStorage cache keeps the first paint instant.
             fetchProductsFromBackend();
+
+            // PUSH NOTIFICATIONS (Android app only): permission → FCM register
+            // → token synced to the backend → push tap opens the exact product.
+            initPushNotifications();
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', bootStorefront);

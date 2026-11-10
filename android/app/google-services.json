@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "80834426568",
+    "project_id": "basic-footgear",
+    "storage_bucket": "basic-footgear.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:80834426568:android:fe0af1085cd746a0e557fd",
+        "android_client_info": {
+          "package_name": "com.basicfootgear.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzIcR9p8rpIm37WEZxdWPF8Ymqg49ltxU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
